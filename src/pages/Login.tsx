@@ -10,37 +10,45 @@ export default function Login() {
   const handleSignUp = () => { };
 
   return (
-    <div className='max-w-100vw'>
-      <img src={logo} className='max-w-[20%] h-auto'></img>
-      <h2>Login</h2>
+    <div className="flex flex-col justify-center items-center h-full gap-20">
+      
       <div>
-        <label>Email</label>
+        <img src={logo} className='max-w-[60%] h-auto mx-auto'></img>
+        <h1 className='text-7xl text-white'>Walkies?</h1>
+      </div>
+
+      <div className='flex flex-col gap-5'>
         <input
           type="email"
           value={email}
+          placeholder='Email'
           onChange={(e) => setEmail(e.target.value)}
+          className='bg-wsage py-1.5 px-4 rounded-md drop-shadow-2xl'
         />
-      </div>
-      <div className="mb-6">
-        <label>Password</label>
         <input
           type="password"
           value={password}
+          placeholder='Password'
           onChange={(e) => setPassword(e.target.value)}
+          className='bg-wsage py-1.5 px-4 rounded-md drop-shadow-2xl'
         />
       </div>
-      <div>
+
+      <div className='flex gap-5'>
         <button
           onClick={handleLogin}
+          className='bg-worange rounded-2xl py-1.5 px-4'
         >
-          Go
+          Log in
         </button>
         <button
           onClick={handleSignUp}
+          className='text-worange rounded-2xl py-1.5 px-4'
         >
           Sign Up
         </button>
       </div>
+
     </div>
   );
 };
