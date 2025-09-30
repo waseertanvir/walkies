@@ -19,14 +19,13 @@ interface Owner {
 
 interface Walker {
   experience: string;
-  rate: string; 
   availability: string;
+  payRate: string;
   bio: string;
 }
 
 export default function Forms() {
   const [step, setStep] = useState(1);
-
   const [profile, setProfile] = useState<Profile>({
     firstName: "",
     lastName: "",
@@ -38,28 +37,28 @@ export default function Forms() {
   const [owner, setOwner] = useState<Owner>({
     petName: "",
     breed: "",
-    numPets: 1,
+    numPets: undefined as unknown as number,
     petInfo: "",
   });
 
   const [walker, setWalker] = useState<Walker>({
     experience: "",
-    rate: "",
     availability: "",
+    payRate: "",
     bio: "",
   });
 
-  const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleProfileChange = (e: any) => {
     const { name, value } = e.target;
     setProfile({ ...profile, [name]: value });
   };
 
-  const handleOwnerChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleOwnerChange = (e: any) => {
     const { name, value } = e.target;
     setOwner({ ...owner, [name]: value });
   };
 
-  const handleWalkerChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleWalkerChange = (e: any) => {
     const { name, value } = e.target;
     setWalker({ ...walker, [name]: value });
   };
@@ -78,16 +77,15 @@ export default function Forms() {
       data = { ...profile, walkerInfo: walker };
     }
     console.log(data);
-    alert("Form submitted! Check console for data.");
+    alert("Form submitted!");
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-200 p-5">
-      <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-md">
-        {/* STEP 1: Profile */}
+    <div className="flex justify-center items-center min-h-screen bg-wblue p-5">
+      <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
         {step === 1 && (
           <div>
-            <h2 className="text-xl font-bold mb-4">Profile</h2>
+            <h2 className="text-xl font-bold mb-4 text-wblue">Profile</h2>
             <div className="flex flex-col gap-3">
               <input
                 type="text"
@@ -116,7 +114,7 @@ export default function Forms() {
               <input
                 type="text"
                 name="phone"
-                placeholder="Phone"
+                placeholder="Phone (Optional)"
                 value={profile.phone}
                 onChange={handleProfileChange}
                 className="border p-2 rounded"
@@ -134,7 +132,7 @@ export default function Forms() {
             </div>
             <button
               onClick={nextStep}
-              className="bg-blue-500 text-white px-4 py-2 rounded mt-4"
+              className="bg-worange text-white px-4 py-2 rounded mt-4 w-full"
               disabled={profile.role === ""}
             >
               Next
@@ -142,10 +140,9 @@ export default function Forms() {
           </div>
         )}
 
-        {/* STEP 2: Owner Form */}
         {step === 2 && profile.role === "owner" && (
           <div>
-            <h2 className="text-xl font-bold mb-4">Pet Info</h2>
+            <h2 className="text-xl font-bold mb-4 text-wblue">Pet Info</h2>
             <div className="flex flex-col gap-3">
               <input
                 type="text"
@@ -169,6 +166,7 @@ export default function Forms() {
                 value={owner.numPets}
                 onChange={handleOwnerChange}
                 className="border p-2 rounded"
+                placeholder="Number of Pets"
               />
               <textarea
                 name="petInfo"
@@ -180,17 +178,16 @@ export default function Forms() {
             </div>
             <button
               onClick={submitForm}
-              className="bg-green-600 text-white px-4 py-2 rounded mt-4"
+              className="bg-wsage text-white px-4 py-2 rounded mt-4 w-full"
             >
               Submit
             </button>
           </div>
         )}
 
-        {/* STEP 2: Walker Form */}
         {step === 2 && profile.role === "walker" && (
           <div>
-            <h2 className="text-xl font-bold mb-4">Walker Setup</h2>
+            <h2 className="text-xl font-bold mb-4 text-wblue">Walker Setup</h2>
             <div className="flex flex-col gap-3">
               <input
                 type="text"
@@ -202,23 +199,23 @@ export default function Forms() {
               />
               <input
                 type="text"
-                name="rate"
-                placeholder="$21.00 per hour"
-                value={walker.rate}
+                name="availability"
+                placeholder="Availability (e.g. weekdays, evenings)"
+                value={walker.availability}
                 onChange={handleWalkerChange}
                 className="border p-2 rounded"
               />
               <input
                 type="text"
-                name="availability"
-                placeholder="Availability (e.g. Weekdays 9am-5pm)"
-                value={walker.availability}
+                name="payRate"
+                placeholder="Pay Rate (e.g. $21.00/hr)"
+                value={walker.payRate}
                 onChange={handleWalkerChange}
                 className="border p-2 rounded"
               />
               <textarea
                 name="bio"
-                placeholder="Short Bio"
+                placeholder="Short bio"
                 value={walker.bio}
                 onChange={handleWalkerChange}
                 className="border p-2 rounded"
@@ -226,7 +223,7 @@ export default function Forms() {
             </div>
             <button
               onClick={submitForm}
-              className="bg-green-600 text-white px-4 py-2 rounded mt-4"
+              className="bg-wsage text-white px-4 py-2 rounded mt-4 w-full"
             >
               Submit
             </button>
