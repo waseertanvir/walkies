@@ -2,13 +2,12 @@ import {useEffect, useState} from 'react'
 import './App.css'
 import {GoogleMap, useJsApiLoader, Marker, InfoWindow} from '@react-google-maps/api';
 import dogIcon from '../assets/Logo.png'
-import {AuthProvider} from '../auth/AuthContext.tsx'
+import ProtectedRoute from '../auth/ProtectedRoute.tsx'
 
 export default function App() {
     const [selectedMarker, setSelectedMarker] = useState<number | null>(null);
     const [isTracking, setIsTracking] = useState(false);
     const [myPosition, setMyPosition] = useState<{ lat: number; lng: number } | null>(null);
-
 
     const {isLoaded} = useJsApiLoader({
         googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY
@@ -78,7 +77,7 @@ export default function App() {
     }
 
     return (
-        <AuthProvider>
+        <ProtectedRoute>
             <>
                 <button onClick={() => setIsTracking(!isTracking)}
                         className={`tracking-btn ${isTracking ? 'active' : 'inactive'}`}
@@ -127,6 +126,6 @@ export default function App() {
 
                 </GoogleMap>
             </>
-        </AuthProvider>
+        </ProtectedRoute>
     )
 }
