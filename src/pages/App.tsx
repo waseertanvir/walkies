@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react'
 import './App.css'
-import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from '@react-google-maps/api';
-import dogIcon from '../assets/Logo.png'
+import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
 import ProtectedRoute from '../auth/ProtectedRoute.tsx'
 import { supabase } from '../supabaseClient.ts';
 import { useNavigate } from 'react-router';
 
 export default function App() {
-  const [selectedMarker, setSelectedMarker] = useState<number | null>(null);
+  // const [selectedMarker, setSelectedMarker] = useState<number | null>(null);
   const [isTracking, setIsTracking] = useState(false);
   const [myPosition, setMyPosition] = useState<{ lat: number; lng: number } | null>(null);
 
@@ -121,7 +120,7 @@ export default function App() {
           lng: position.coords.longitude
         };
         setMyPosition(newPosition);
-
+        console.log("My broadcasted position: ", newPosition,'\n')
         //broadcast location
         sendLocation(newPosition)
       },

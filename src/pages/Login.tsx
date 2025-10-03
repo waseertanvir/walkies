@@ -6,16 +6,11 @@ import { useNavigate } from "react-router";
 export default function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
 
     const navigate = useNavigate();
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        setLoading(true);
-        setError(null);
 
         const { data, error } = await supabase.auth.signInWithPassword({
             email,
@@ -23,13 +18,11 @@ export default function Login() {
         });
 
         if (error) {
-            setError(error.message);
+            console.log(error.message);
         } else {
             console.log('Logged in user:', data.user);
             navigate('/')
         }
-
-        setLoading(false);
     };
 
     // (window as any).handleSignInWithGoogle = async (response: any) => {

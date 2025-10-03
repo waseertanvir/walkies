@@ -7,29 +7,25 @@ export default function Signup() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [checkPass, setCheckPass] = useState('');
-  const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
 
   const navigate = useNavigate();
 
   const handleSignUp = async () => {
-    setError('');
-    setMessage('');
 
     if (password !== checkPass) {
-      setError("Passwords do not match");
+      console.log("Passwords do not match");
       return;
     }
 
-    const { data, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email,
       password,
     });
 
     if (error) {
-      setError(error.message);
+      console.log(error.message);
     } else {
-      setMessage("Check your email for confirmation link");
+      alert("Check your email for confirmation link");
       navigate('/forms')
     }
   };

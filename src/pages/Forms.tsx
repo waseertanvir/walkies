@@ -82,7 +82,7 @@ export default function Forms() {
       }
 
       // Update profile
-      const { data: profileData, error: profileError } = await supabase
+      const { error: profileError } = await supabase
         .from("profiles")
         .update({
           full_name: profile.fullName,
