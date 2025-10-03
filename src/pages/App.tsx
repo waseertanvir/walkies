@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import './App.css'
-import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
+import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from '@react-google-maps/api';
 import ProtectedRoute from '../auth/ProtectedRoute.tsx'
 import { supabase } from '../supabaseClient.ts';
 import { useNavigate } from 'react-router';
@@ -16,6 +16,7 @@ export default function App() {
   const [users, setUsers] = useState<UserLocation[]>([]);
 
   const navigate = useNavigate();
+  
 
   type UserLocation = {
     userID: string,
@@ -157,6 +158,7 @@ export default function App() {
     height: "100vh",
     width: "100vw"
   };
+
   const center = myPosition && isTracking
     ? myPosition
     : { lat: 49.24, lng: -123.05 };
@@ -164,6 +166,25 @@ export default function App() {
   if (!isLoaded) {
     return <div>Loading map...</div>;
   }
+
+  const testUsers:UserLocation[] = [
+              {
+                userID: '1',
+                role: 'Walker',
+                name: 'guy1',
+                position: { lat: 49.245, lng: -123.05 },
+                timestamp: new Date(),
+              },
+              {
+                userID: '2',
+                role: 'Owner',
+                name: 'girl1',
+                position: { lat: 49.243, lng: -123.052 },
+                timestamp: new Date(),
+              },
+            ];
+
+  const allUsers = [...users, ...testUsers];
 
   return (
     <ProtectedRoute>
@@ -198,13 +219,27 @@ export default function App() {
           center={center}
           zoom={isTracking ? 15 : 13}
         >
-          {users.map((user) => (
+          {allUsers.map((user) => {
+            const getMarkerColor = (role: string) => {
+                switch (role) {
+                  case 'Walker': return '#007BFF';
+                  case 'Owner': return '#28A745';
+                  default: return '#6C757D'; // Gray for unknown roles
+                }
+              };
+            const markerColor = getMarkerColor(user.role);
+          return (
             <Marker
               key={user.userID}
               position={user.position}
+              clickable={true}
+              onClick={() => {
+                console.log("clicked user: ", user);
+                console.log("color: ", markerColor);
+              }}
               icon={{
                 path: window.google.maps.SymbolPath.CIRCLE,
-                fillColor: user.userID === userID ? "#FE7F2D" : "#007BFF",
+                fillColor: markerColor,
                 fillOpacity: 0.8,
                 strokeColor: "#ffffff",
                 strokeWeight: 2,
@@ -212,10 +247,14 @@ export default function App() {
               }}
             >
             </Marker>
-          ))}
+          )})}
+
           {isTracking && myPosition && (
             <Marker
               position={myPosition}
+              onClick={() => {
+                console.log("clicked my position: ", myPosition);
+              }}
               icon={{
                 path: window.google.maps.SymbolPath.CIRCLE,
                 fillColor: '#FE7F2D',
