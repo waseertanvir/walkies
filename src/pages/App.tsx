@@ -33,16 +33,31 @@ export default function App() {
   // on load effects
   useEffect(() => {
     //get user data
-    const fetchSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUserID(session?.user?.id ?? "");
-      setUserName(session?.user?.email ?? "");
-      setUserRole(session?.user?.role ?? "");
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('full_name, role')
+        .eq('id', user?.id)
+        .single();
+
+      // console.log(user?.id)
+      // console.log(profile);
+
+      setUserID(user?.id ?? "");
+      setUserName(profile?.full_name)
+      setUserRole(profile?.role)
+
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+        return null;
+      }
     };
 
-    fetchSession();
+    fetchUser();
 
     const updateUserLocation = (updateLocation: UserLocation) => {
+      console.log(updateLocation)
       setUsers(prevUsers => {
         const index = prevUsers.findIndex(u => u.userID === updateLocation.userID);
 
@@ -61,17 +76,15 @@ export default function App() {
     const channel = supabase
       .channel("liveLocations")
       .on('broadcast', { event: "location" }, (payload) => {
-        // only shows roles different from user
-        if (payload.role !== userRole) {
-          const tempUserLocation: UserLocation = {
-            userID: payload.userID,
-            role: payload.role,
-            name: payload.name,
-            position: payload.position,
-            timestamp: payload.timestamp
-          }
-          updateUserLocation(tempUserLocation)
+        console.log('received payload: ', payload.payload, '\n\n')
+        const tempUserLocation: UserLocation = {
+          userID: payload.payload.userID,
+          role: payload.payload.role,
+          name: payload.payload.name,
+          position: payload.payload.position,
+          timestamp: payload.payload.timestamp,
         }
+        updateUserLocation(tempUserLocation)
       })
       .subscribe();
 
@@ -80,6 +93,10 @@ export default function App() {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  useEffect(() => {
+    console.log("Updated users: ", users);
+  }, [users]);
 
   useEffect(() => {
     if (navigator.geolocation) {
@@ -120,7 +137,7 @@ export default function App() {
           lng: position.coords.longitude
         };
         setMyPosition(newPosition);
-        console.log("My broadcasted position: ", newPosition,'\n')
+        console.log("My broadcasted position: ", newPosition, '\n')
         //broadcast location
         sendLocation(newPosition)
       },
@@ -162,7 +179,7 @@ export default function App() {
           <button
             onClick={async () => {
               await supabase.auth.signOut();
-              
+
               navigate('/login')
             }}
             className="px-4 py-2 rounded-md bg-red-500 text-white"
