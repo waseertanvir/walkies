@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import './App.css'
-import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from '@react-google-maps/api';
+import { GoogleMap, useJsApiLoader, Marker} from '@react-google-maps/api';
 import ProtectedRoute from '../auth/ProtectedRoute.tsx'
 import { supabase } from '../supabaseClient.ts';
 import { useNavigate } from 'react-router';
@@ -14,6 +14,9 @@ export default function App() {
   const [userName, setUserName] = useState("");
   const [userRole, setUserRole] = useState("");
   const [users, setUsers] = useState<UserLocation[]>([]);
+
+  const [isMarkerClicked, setIsMarkerClicked] = useState(false);
+  const [clickedUser, setClickedUser] = useState<UserLocation | null>(null);
 
   const navigate = useNavigate();
   
@@ -167,22 +170,23 @@ export default function App() {
     return <div>Loading map...</div>;
   }
 
+  //dummy users for testing
   const testUsers:UserLocation[] = [
-              {
-                userID: '1',
-                role: 'Walker',
-                name: 'guy1',
-                position: { lat: 49.245, lng: -123.05 },
-                timestamp: new Date(),
-              },
-              {
-                userID: '2',
-                role: 'Owner',
-                name: 'girl1',
-                position: { lat: 49.243, lng: -123.052 },
-                timestamp: new Date(),
-              },
-            ];
+    {
+      userID: '1',
+      role: 'Walker',
+      name: 'guy1',
+      position: { lat: 49.245, lng: -123.05 },
+      timestamp: new Date(),
+    },
+    {
+      userID: '2',
+      role: 'Owner',
+      name: 'girl1',
+      position: { lat: 49.243, lng: -123.052 },
+      timestamp: new Date(),
+    },
+  ];
 
   const allUsers = [...users, ...testUsers];
 
@@ -236,6 +240,7 @@ export default function App() {
               onClick={() => {
                 console.log("clicked user: ", user);
                 console.log("color: ", markerColor);
+                setClickedUser(user);
               }}
               icon={{
                 path: window.google.maps.SymbolPath.CIRCLE,
@@ -264,6 +269,14 @@ export default function App() {
                 scale: 10
               }}
             />
+          )}
+
+          {clickedUser && (
+            <div className="status-box">
+              <p>name: {clickedUser.name} </p>
+              <p>role: {clickedUser.role} </p>
+              <button onClick={() => setClickedUser(null)} className="close-button">Close</button>
+            </div>
           )}
 
         </GoogleMap>
