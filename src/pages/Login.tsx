@@ -6,32 +6,54 @@ import { useNavigate } from "react-router";
 export default function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
 
     const navigate = useNavigate();
-    const handleLogin = () => { };
 
-    (window as any).handleSignInWithGoogle = async (response: any) => {
-        const { data, error } = await supabase.auth.signInWithOAuth({
-            provider: 'google',
-            options: {
-                redirectTo: `${window.location.origin}` // or your homepage
-            }
-        })
+    const handleLogin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        setError(null);
+
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+        });
 
         if (error) {
-            console.error("Google sign-in error:", error.message);
+            setError(error.message);
         } else {
-            console.log("Supabase session:", data);
-            //window.location.href = "/";
+            console.log('Logged in user:', data.user);
+            navigate('/')
         }
+
+        setLoading(false);
     };
 
-    // 2️⃣ Dynamically load the Google Identity Services script
-    const script = document.createElement("script");
-    script.src = "https://accounts.google.com/gsi/client";
-    script.async = true;
-    script.defer = true;
-    document.body.appendChild(script);
+    // (window as any).handleSignInWithGoogle = async (response: any) => {
+    //     const { data, error } = await supabase.auth.signInWithOAuth({
+    //         provider: 'google',
+    //         options: {
+    //             redirectTo: `${window.location.origin}` // or your homepage
+    //         }
+    //     })
+
+    //     if (error) {
+    //         console.error("Google sign-in error:", error.message);
+    //     } else {
+    //         console.log("Supabase session:", data);
+    //         //window.location.href = "/";
+    //     }
+    // };
+
+    // // 2️⃣ Dynamically load the Google Identity Services script
+    // const script = document.createElement("script");
+    // script.src = "https://accounts.google.com/gsi/client";
+    // script.async = true;
+    // script.defer = true;
+    // document.body.appendChild(script);
 
     return (
 

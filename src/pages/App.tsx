@@ -4,6 +4,7 @@ import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from '@react-google-map
 import dogIcon from '../assets/Logo.png'
 import ProtectedRoute from '../auth/ProtectedRoute.tsx'
 import { supabase } from '../supabaseClient.ts';
+import { useNavigate } from 'react-router';
 
 export default function App() {
   const [selectedMarker, setSelectedMarker] = useState<number | null>(null);
@@ -13,8 +14,9 @@ export default function App() {
   const [userID, setUserID] = useState("");
   const [userName, setUserName] = useState("");
   const [userRole, setUserRole] = useState("");
-
   const [users, setUsers] = useState<UserLocation[]>([]);
+
+  const navigate = useNavigate();
 
   type UserLocation = {
     userID: string,
@@ -150,12 +152,25 @@ export default function App() {
   return (
     <ProtectedRoute>
       <>
-        <button onClick={() => setIsTracking(!isTracking)}
-          className={`tracking-btn ${isTracking ? 'active' : 'inactive'}`}
-        >
-          {isTracking ? 'Stop Tracking' : 'Start Tracking'}
-        </button>
+        <div className="flex gap-4 p-4">
+          <button
+            onClick={() => setIsTracking(!isTracking)}
+            className={`px-4 py-2 rounded-md text-white ${isTracking ? 'bg-orange-500' : 'bg-blue-500'}`}
+          >
+            {isTracking ? 'Stop Tracking' : 'Start Tracking'}
+          </button>
 
+          <button
+            onClick={async () => {
+              await supabase.auth.signOut();
+              
+              navigate('/login')
+            }}
+            className="px-4 py-2 rounded-md bg-red-500 text-white"
+          >
+            Sign Out
+          </button>
+        </div>
         {/* {isTracking && myPosition && (
           <div className="status-box">
             timer and other info here
@@ -180,11 +195,6 @@ export default function App() {
                 scale: 8
               }}
             >
-              <InfoWindow>
-                <div>
-                  {user.name} ({user.role})
-                </div>
-              </InfoWindow>
             </Marker>
           ))}
           {isTracking && myPosition && (
