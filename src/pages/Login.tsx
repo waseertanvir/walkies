@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import logo from '../assets/Logo.png'
 import { supabase } from "../supabaseClient";
+import { useNavigate } from "react-router";
 
 export default function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
+    const navigate = useNavigate();
     const handleLogin = () => { };
-    const handleSignUp = () => { };
 
     (window as any).handleSignInWithGoogle = async (response: any) => {
         const { data, error } = await supabase.auth.signInWithOAuth({
@@ -35,10 +36,9 @@ export default function Login() {
     return (
 
         <div className="flex flex-col justify-center items-center h-full gap-20">
-
             <div>
                 <img src={logo} className='max-w-[60%] h-auto mx-auto'></img>
-                <h1 className='text-7xl text-white'>Walkies?</h1>
+                <h1 className='text-7xl text-white text-center'>Walkies?</h1>
             </div>
 
             <div className='flex flex-col gap-5'>
@@ -66,7 +66,7 @@ export default function Login() {
                     Log in
                 </button>
                 <button
-                    onClick={handleSignUp}
+                    onClick={() => navigate("/signup")}
                     className='text-worange rounded-2xl py-1.5 px-4'
                 >
                     Sign Up

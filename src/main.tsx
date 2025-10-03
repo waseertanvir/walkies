@@ -6,6 +6,7 @@ import './index.css'
 import App from './pages/App.tsx'
 import Login from './pages/Login.tsx'
 import Forms from './pages/Forms.tsx'
+import Signup from './pages/Signup.tsx'
 
 const router = createBrowserRouter([
   {
@@ -16,9 +17,13 @@ const router = createBrowserRouter([
     path: "/login",
     Component: Login
   },
-    {
+  {
     path: "/forms",
     Component: Forms
+  },
+  {
+    path: "/signup",
+    Component: Signup
   },
 ]);
 
