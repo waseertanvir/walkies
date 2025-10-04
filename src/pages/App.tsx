@@ -6,7 +6,6 @@ import { supabase } from '../supabaseClient.ts';
 import { useNavigate } from 'react-router';
 
 export default function App() {
-  // const [selectedMarker, setSelectedMarker] = useState<number | null>(null);
   const [isTracking, setIsTracking] = useState(false);
   const [myPosition, setMyPosition] = useState<{ lat: number; lng: number } | null>(null);
 
@@ -15,7 +14,6 @@ export default function App() {
   const [userRole, setUserRole] = useState("");
   const [users, setUsers] = useState<UserLocation[]>([]);
 
-  const [isMarkerClicked, setIsMarkerClicked] = useState(false);
   const [clickedUser, setClickedUser] = useState<UserLocation | null>(null);
 
   const navigate = useNavigate();
