@@ -25,7 +25,7 @@ export default function Login() {
         }
     };
 
-    (window as any).handleSignInWithGoogle = async (response: any) => {
+    (window as any).handleSignInWithGoogle = async () => {
         const { data, error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
