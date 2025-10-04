@@ -160,9 +160,7 @@ export default function App() {
     width: "100vw"
   };
 
-  const center = myPosition && isTracking
-    ? myPosition
-    : { lat: 49.24, lng: -123.05 };
+const center = myPosition ?? { lat: 49.24, lng: -123.05 };
 
   if (!isLoaded) {
     return <div>Loading map...</div>;
