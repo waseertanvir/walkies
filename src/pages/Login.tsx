@@ -25,28 +25,28 @@ export default function Login() {
         }
     };
 
-    // (window as any).handleSignInWithGoogle = async (response: any) => {
-    //     const { data, error } = await supabase.auth.signInWithOAuth({
-    //         provider: 'google',
-    //         options: {
-    //             redirectTo: `${window.location.origin}` // or your homepage
-    //         }
-    //     })
+    (window as any).handleSignInWithGoogle = async (response: any) => {
+        const { data, error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: `${window.location.origin}` // or your homepage
+            }
+        })
 
-    //     if (error) {
-    //         console.error("Google sign-in error:", error.message);
-    //     } else {
-    //         console.log("Supabase session:", data);
-    //         //window.location.href = "/";
-    //     }
-    // };
+        if (error) {
+            console.error("Google sign-in error:", error.message);
+        } else {
+            console.log("Supabase session:", data);
+            //window.location.href = "/";
+        }
+    };
 
-    // // 2️⃣ Dynamically load the Google Identity Services script
-    // const script = document.createElement("script");
-    // script.src = "https://accounts.google.com/gsi/client";
-    // script.async = true;
-    // script.defer = true;
-    // document.body.appendChild(script);
+    // 2️⃣ Dynamically load the Google Identity Services script
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    document.body.appendChild(script);
 
     return (
 
@@ -88,8 +88,6 @@ export default function Login() {
                 </button>
 
                 <div>
-                    <h2>Sign in</h2>
-                    {/* Google button container */}
                     <div
                         id="g_id_onload"
                         data-client_id={import.meta.env.VITE_GOOGLE_CLIENT_ID}
