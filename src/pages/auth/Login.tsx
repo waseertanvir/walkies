@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import logo from '../assets/Logo.png'
-import { supabase } from "../supabaseClient";
+import logo from '../../assets/Logo.png'
+import { supabase } from "../../supabaseClient";
 import { useNavigate, useSearchParams } from "react-router";
 
 export default function Login() {
@@ -18,7 +18,7 @@ export default function Login() {
             .select('*')
             .eq('id', userId)
             .single();
-        
+
         return profile && profile.full_name && profile.role && profile.phone;
     };
 
@@ -43,15 +43,15 @@ export default function Login() {
                 }
             } else {
                 console.log('Logged in user:', data.user);
-                
+
                 // Check if profile is complete
                 const isProfileComplete = await checkProfileCompleteness(data.user.id);
-                
-            if (!isProfileComplete) {
-                navigate('/profile'); // First time - complete profile
-            } else {
-                navigate('/'); // Already has profile - go to dashboard
-            }
+
+                if (!isProfileComplete) {
+                    navigate('/profile'); // First time - complete profile
+                } else {
+                    navigate('/owner/dashboard'); // Already has profile - go to dashboard
+                }
             }
         } catch (error) {
             console.error('Login error:', error);
@@ -77,7 +77,7 @@ export default function Login() {
         }
     };
 
-    // 2️⃣ Dynamically load the Google Identity Services script
+    // Dynamically load the Google Identity Services script
     const script = document.createElement("script");
     script.src = "https://accounts.google.com/gsi/client";
     script.async = true;
@@ -89,19 +89,19 @@ export default function Login() {
         <div className="flex flex-col justify-center items-center h-full gap-20">
             <div>
                 <img src={logo} className='max-w-[60%] h-auto mx-auto'></img>
-                <h1 className='text-7xl text-white text-center'>Walkies?</h1>
+                <h1 className='text-7xl text-white text-center'>Walkies</h1>
             </div>
 
             {message === 'check-email' && (
                 <div className="bg-wsage text-white px-6 py-3 rounded-lg text-center max-w-md">
-                    <p className="font-medium">📧 Check your email!</p>
+                    <p className="font-medium">Check your email!</p>
                     <p className="text-sm mt-1">We've sent you a verification link. Click it to activate your account, then come back here to sign in.</p>
                 </div>
             )}
 
             {message === 'verified' && (
                 <div className="bg-wolive text-white px-6 py-3 rounded-lg text-center max-w-md">
-                    <p className="font-medium">✅ Email verified!</p>
+                    <p className="font-medium">Email verified!</p>
                     <p className="text-sm mt-1">Your account is now active. Please sign in below to continue.</p>
                 </div>
             )}
@@ -121,39 +121,39 @@ export default function Login() {
                     onChange={(e) => setPassword(e.target.value)}
                     className='bg-wsage py-1.5 px-4 rounded-md drop-shadow-2xl'
                 />
+                <div className='flex justify-center items-center gap-5'>
+                    <button
+                        onClick={handleLogin}
+                        className='border-2 border-worange bg-worange rounded-2xl py-1.5 px-4 disabled:opacity-50 active:bg-wblue active:text-worange'
+                        disabled={loading}
+                    >
+                        {loading ? 'Signing in...' : 'Log in'}
+                    </button>
+                    <button
+                        onClick={() => navigate("/signup")}
+                        className='border-2 border-worange text-worange rounded-2xl py-1.5 px-4 active:bg-worange active:text-black'
+                    >
+                        Sign Up
+                    </button>
+                </div>
+
             </div>
 
-            <div className='flex gap-5'>
-                <button
-                    onClick={handleLogin}
-                    className='bg-worange rounded-2xl py-1.5 px-4 disabled:opacity-50'
-                    disabled={loading}
-                >
-                    {loading ? 'Signing in...' : 'Log in'}
-                </button>
-                <button
-                    onClick={() => navigate("/signup")}
-                    className='text-worange rounded-2xl py-1.5 px-4'
-                >
-                    Sign Up
-                </button>
-
-                <div>
-                    <div
-                        id="g_id_onload"
-                        data-client_id={import.meta.env.VITE_GOOGLE_CLIENT_ID}
-                        data-callback="handleSignInWithGoogle"
-                    ></div>
-                    <div
-                        className="g_id_signin"
-                        data-type="standard"
-                        data-shape="rectangular"
-                        data-theme="outline"
-                        data-text="sign_in_with"
-                        data-size="large"
-                        data-logo_alignment="left"
-                    ></div>
-                </div>
+            <div>
+                <div
+                    id="g_id_onload"
+                    data-client_id={import.meta.env.VITE_GOOGLE_CLIENT_ID}
+                    data-callback="handleSignInWithGoogle"
+                ></div>
+                <div
+                    className="g_id_signin"
+                    data-type="standard"
+                    data-shape="rectangular"
+                    data-theme="outline"
+                    data-text="sign_in_with"
+                    data-size="large"
+                    data-logo_alignment="left"
+                ></div>
             </div>
 
         </div>
