@@ -7,26 +7,38 @@ export default function Signup() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [checkPass, setCheckPass] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
   const handleSignUp = async () => {
-
     if (password !== checkPass) {
       console.log("Passwords do not match");
       return;
     }
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`
+        }
+      });
 
-    if (error) {
-      console.log(error.message);
-    } else {
-      alert("Check your email for confirmation link");
-      navigate('/forms')
+      if (error) {
+        console.log(error.message);
+        alert("Error creating account: " + error.message);
+      } else {
+        alert("Check your email for confirmation link");
+        navigate('/login?message=check-email');
+      }
+    } catch (error) {
+      console.error('Signup error:', error);
+      alert('An unexpected error occurred. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -66,9 +78,10 @@ export default function Signup() {
       <div className='flex gap-5'>
         <button
           onClick={handleSignUp}
-          className='bg-worange rounded-2xl py-1.5 px-4'
+          className='bg-worange rounded-2xl py-1.5 px-4 disabled:opacity-50'
+          disabled={loading}
         >
-          Sign Up
+          {loading ? 'Creating Account...' : 'Sign Up'}
         </button>
       </div>
     </div>

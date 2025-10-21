@@ -23,3 +23,12 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# Supabase
+supabase/
+
+# SQL files
+*.sql
+
+# Markdown files
+*.md

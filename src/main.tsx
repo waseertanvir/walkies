@@ -3,27 +3,61 @@ import { createRoot } from 'react-dom/client'
 import { createBrowserRouter } from "react-router";
 import { RouterProvider } from "react-router/dom";
 import './index.css'
-import App from './pages/App.tsx'
+import Dashboard from './pages/Dashboard.tsx'
 import Login from './pages/Login.tsx'
-import Forms from './pages/Forms.tsx'
+import Profile from './pages/Profile.tsx'
 import Signup from './pages/Signup.tsx'
+import Track from './pages/Track.tsx'
+import CreateRequest from './pages/CreateRequest.tsx'
+import BrowseRequests from './pages/BrowseRequests.tsx'
+import MySessions from './pages/MySessions.tsx'
+import ApplicationsReview from './pages/ApplicationsReview.tsx'
+import AuthCallback from './pages/AuthCallback.tsx'
 
 const router = createBrowserRouter([
   {
     path: "/",
-    Component: App
+    Component: Dashboard
   },
   {
     path: "/login",
     Component: Login
   },
   {
-    path: "/forms",
-    Component: Forms
+    path: "/profile",
+    Component: Profile
   },
   {
     path: "/signup",
     Component: Signup
+  },
+  {
+    path: "/track",
+    Component: Track
+  },
+  {
+    path: "/requests/new",
+    Component: CreateRequest
+  },
+  {
+    path: "/requests",
+    Component: BrowseRequests
+  },
+  {
+    path: "/my-sessions",
+    Component: MySessions
+  },
+  {
+    path: "/profile",
+    Component: Profile
+  },
+  {
+    path: "/applications/:sessionId",
+    Component: ApplicationsReview
+  },
+  {
+    path: "/auth/callback",
+    Component: AuthCallback
   },
 ]);
 

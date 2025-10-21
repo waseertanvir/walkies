@@ -1,27 +1,63 @@
 import { useState } from 'react';
 import logo from '../assets/Logo.png'
 import { supabase } from "../supabaseClient";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 
 export default function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [urlParams] = useSearchParams();
+    const message = urlParams.get('message');
 
     const navigate = useNavigate();
 
+    const checkProfileCompleteness = async (userId: string) => {
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .single();
+        
+        return profile && profile.full_name && profile.role && profile.phone;
+    };
+
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
+        setLoading(true);
 
-        const { data, error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-        });
+        try {
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            });
 
-        if (error) {
-            console.log(error.message);
-        } else {
-            console.log('Logged in user:', data.user);
-            navigate('/')
+            if (error) {
+                if (error.message.includes('Email not confirmed')) {
+                    alert('Please check your email and click the verification link before signing in.');
+                } else if (error.message.includes('Invalid login credentials')) {
+                    alert('Invalid email or password. Please check your credentials and try again.');
+                } else {
+                    console.log(error.message);
+                    alert('Login failed: ' + error.message);
+                }
+            } else {
+                console.log('Logged in user:', data.user);
+                
+                // Check if profile is complete
+                const isProfileComplete = await checkProfileCompleteness(data.user.id);
+                
+            if (!isProfileComplete) {
+                navigate('/profile'); // First time - complete profile
+            } else {
+                navigate('/'); // Already has profile - go to dashboard
+            }
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            alert('An unexpected error occurred. Please try again.');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -56,6 +92,20 @@ export default function Login() {
                 <h1 className='text-7xl text-white text-center'>Walkies?</h1>
             </div>
 
+            {message === 'check-email' && (
+                <div className="bg-wsage text-white px-6 py-3 rounded-lg text-center max-w-md">
+                    <p className="font-medium">📧 Check your email!</p>
+                    <p className="text-sm mt-1">We've sent you a verification link. Click it to activate your account, then come back here to sign in.</p>
+                </div>
+            )}
+
+            {message === 'verified' && (
+                <div className="bg-wolive text-white px-6 py-3 rounded-lg text-center max-w-md">
+                    <p className="font-medium">✅ Email verified!</p>
+                    <p className="text-sm mt-1">Your account is now active. Please sign in below to continue.</p>
+                </div>
+            )}
+
             <div className='flex flex-col gap-5'>
                 <input
                     type="email"
@@ -76,9 +126,10 @@ export default function Login() {
             <div className='flex gap-5'>
                 <button
                     onClick={handleLogin}
-                    className='bg-worange rounded-2xl py-1.5 px-4'
+                    className='bg-worange rounded-2xl py-1.5 px-4 disabled:opacity-50'
+                    disabled={loading}
                 >
-                    Log in
+                    {loading ? 'Signing in...' : 'Log in'}
                 </button>
                 <button
                     onClick={() => navigate("/signup")}
