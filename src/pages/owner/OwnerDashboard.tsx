@@ -162,7 +162,7 @@ export default function App() {
       userID: '3',
       role: 'Walker',
       name: 'guy2',
-      position: { lat:49.271, lng: -123.251 },
+      position: { lat: 49.271, lng: -123.251 },
       timestamp: new Date(),
     },
   ];
@@ -171,80 +171,86 @@ export default function App() {
 
   return (
     <ProtectedRoute>
-    <OwnerMenu />
+      <OwnerMenu />
 
-    <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}>
-      <Map
-        mapId={import.meta.env.VITE_GOOGLE_MAP_ID}
-        style={{ width: '100vw', height: '100vh' }}
-        defaultCenter={center}
-        defaultZoom={15}
-        disableDefaultUI={true}
-        clickableIcons={false}
-      >
-        {allUsers.map((user) => {
-          const getMarkerColor = (role: string) => {
-            switch (role) {
-              case 'Walker': return '#007BFF';
-              case 'Owner': return '#28A745';
-              default: return '#6C757D';
-            }
-          };
-          const markerColor = getMarkerColor(user.role);
-          return (
+      <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}>
+        <Map
+          mapId={import.meta.env.VITE_GOOGLE_MAP_ID}
+          style={{ width: '100vw', height: '100vh' }}
+          defaultCenter={center}
+          defaultZoom={15}
+          disableDefaultUI={true}
+          clickableIcons={false}
+        >
+          {allUsers.map((user) => {
+            const getMarkerColor = (role: string) => {
+              switch (role) {
+                case 'Walker': return '#007BFF';
+                case 'Owner': return '#28A745';
+                default: return '#6C757D';
+              }
+            };
+            const markerColor = getMarkerColor(user.role);
+            return (
+              <AdvancedMarker
+                key={user.userID}
+                position={user.position}
+                onClick={() => setClickedUser(user)}
+              >
+                {/* Custom circular marker */}
+                <div
+                  style={{
+                    width: '16px',
+                    height: '16px',
+                    borderRadius: '50%',
+                    backgroundColor: markerColor,
+                    border: '2px solid white',
+                  }}
+                />
+              </AdvancedMarker>
+            );
+          })}
+
+          {myPosition && (
             <AdvancedMarker
-              key={user.userID}
-              position={user.position}
-              onClick={() => setClickedUser(user)}
+              position={myPosition}
+              onClick={() => console.log('clicked my position: ', myPosition)}
             >
-              {/* Custom circular marker */}
               <div
                 style={{
-                  width: '16px',
-                  height: '16px',
+                  width: '20px',
+                  height: '20px',
                   borderRadius: '50%',
-                  backgroundColor: markerColor,
-                  border: '2px solid white',
+                  backgroundColor: '#FE7F2D',
+                  border: '3px solid white',
                 }}
               />
             </AdvancedMarker>
-          );
-        })}
-
-        {myPosition && (
-          <AdvancedMarker
-            position={myPosition}
-            onClick={() => console.log('clicked my position: ', myPosition)}
-          >
-            <div
-              style={{
-                width: '20px',
-                height: '20px',
-                borderRadius: '50%',
-                backgroundColor: '#FE7F2D',
-                border: '3px solid white',
-              }}
-            />
-          </AdvancedMarker>
-        )}
-      </Map>
-
-      {clickedUser && (
-        <div className="status-box">
-          <p>name: {clickedUser.name}</p>
-          <p>role: {clickedUser.role}</p>
-          <button onClick={() => setClickedUser(null)} className="close-button">
-            Close
-          </button>
+          )}
+        </Map>
+        <div className="absolute bottom-0 rounded-t-xl rounded-b-none bg-wsage w-full h-[10vh] flex justify-center items-center gap-20">
+          {clickedUser && (
+            <div className="status-box">
+              <p>name: {clickedUser.name}</p>
+              <p>role: {clickedUser.role}</p>
+              <button onClick={() => setClickedUser(null)} className="close-button">
+                Close
+              </button>
+            </div>
+          )}
+          {!clickedUser && (
+            <div className='flex justify-center items-center gap-20'>
+              <button className="p-4 rounded-3xl bg-worange" onClick={() => navigate("/owner/broadcast")}>
+                Broadcast
+              </button>
+              <button className="p-4 rounded-3xl bg-worange" onClick={() => navigate("/owner/schedule")}>
+                Schedule
+              </button>
+            </div>
+          )}
         </div>
-      )}
-    </APIProvider>
-    <button className="absolute bottom-8 left-8 z-30 p-4 rounded-3xl bg-worange" onClick={()=>{navigate("/owner/broadcast")}}>
-      Broadcast
-    </button>
-    <button className="absolute bottom-8 right-8 z-30 p-4 rounded-3xl bg-worange" onClick={()=>{navigate("/owner/schedule")}}>
-      Schedule
-    </button>
-  </ProtectedRoute>
+
+      </APIProvider>
+    </ProtectedRoute>
   );
 }
