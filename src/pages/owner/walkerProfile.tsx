@@ -34,8 +34,7 @@ export default function WalkerProfile() {
           </div>
         </div>
 
-        <hr className="mt-5"></hr>
-
+        <hr className="mt-5 mb-5"></hr>
 
         <div className="profile-details">
           <p>${user.price || '30'} per dog</p>
