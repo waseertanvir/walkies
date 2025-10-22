@@ -46,6 +46,11 @@ export default function WalkerProfile() {
           <p><span id="dog-limit-count">3</span> dogs per session of book a private session</p>
         </div>
 
+        <div className="safety-section mt-5">
+          <h3 style={{ color: "#FFD700" }}>Safety</h3>
+          <p><span id="safety-description">Lorem ipsum dolor sit amet consectetur, adipisicing elit. Esse quibusdam itaque nesciunt a, sed voluptas inventore, repellendus fugit excepturi, cumque voluptates cupiditate provident aspernatur porro aperiam nostrum nulla minus earum.</span></p>
+        </div>
+
         <div className="profile-details">
           <p>${user.price || '30'} per dog</p>
           <p>Capacity {user.capacity || '2/3'} Dogs</p>
