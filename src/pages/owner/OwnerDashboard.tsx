@@ -4,6 +4,8 @@ import ProtectedRoute from '../../auth/ProtectedRoute.tsx'
 import { supabase } from '../../supabaseClient.ts';
 import { useNavigate } from 'react-router';
 import OwnerMenu from '../../components/ownerMenu.tsx';
+import profileBanner from '../../assets/profile_banner.png';
+import '../App.css'
 
 export default function App() {
   const [myPosition, setMyPosition] = useState<{ lat: number; lng: number } | null>(null);
@@ -228,18 +230,33 @@ export default function App() {
             </AdvancedMarker>
           )}
         </Map>
-        <div className="absolute bottom-0 rounded-t-xl rounded-b-none bg-wsage w-full h-[10vh] flex justify-center items-center gap-20">
           {clickedUser && (
-            <div className="status-box">
-              <p>name: {clickedUser.name}</p>
-              <p>role: {clickedUser.role}</p>
-              <button onClick={() => setClickedUser(null)} className="close-button">
-                Close
-              </button>
+            <div className="status-container">
+              <img 
+                src={profileBanner}
+                alt={clickedUser.name}
+                className="status-image"
+              />
+              <div className="status-box">
+                <div className="header">
+                  <span className="name">{clickedUser.name}</span>
+                  <div className="rating">
+                    <span>★</span>
+                    <span>4.53 (12)</span>
+                  </div>
+                </div>
+                <button className="request-button" onClick={() => setClickedUser(null)}>
+                  Request
+                </button>
+                <div className="details">
+                  <span className="price">${'30'} per dog</span>
+                  <span className="capacity">Capacity {'2/3'} Dogs</span>
+                </div>
+              </div>
             </div>
           )}
           {!clickedUser && (
-            <div className='flex justify-center items-center gap-20'>
+            <div className="absolute bottom-0 rounded-t-xl rounded-b-none bg-wsage w-full h-[10vh] flex justify-center items-center gap-20">
               <button className="p-4 rounded-3xl bg-worange" onClick={() => navigate("/owner/broadcast")}>
                 Broadcast
               </button>
@@ -248,7 +265,7 @@ export default function App() {
               </button>
             </div>
           )}
-        </div>
+        
 
       </APIProvider>
     </ProtectedRoute>
