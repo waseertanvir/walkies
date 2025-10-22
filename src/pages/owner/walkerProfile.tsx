@@ -51,11 +51,6 @@ export default function WalkerProfile() {
           <p><span id="safety-description">Lorem ipsum dolor sit amet consectetur, adipisicing elit. Esse quibusdam itaque nesciunt a, sed voluptas inventore, repellendus fugit excepturi, cumque voluptates cupiditate provident aspernatur porro aperiam nostrum nulla minus earum.</span></p>
         </div>
 
-        <div className="profile-details">
-          <p>${user.price || '30'} per dog</p>
-          <p>Capacity {user.capacity || '2/3'} Dogs</p>
-        </div>
-
         <div className="button-row">
           <button className="back-btn" onClick={() => navigate('/owner/dashboard', { state: { selectedUser: user } })}>
             Back
