@@ -40,6 +40,7 @@ export default function WalkerProfile() {
           Lorem ipsum dolor sit amet, consectetur adipisicing elit. Nisi sint ad vero, corrupti est esse, repudiandae totam impedit placeat minus illo tempore dolore quasi sequi ex nesciunt voluptates rerum eligendi.
         </div>
 
+        <hr className="mt-5 mb-5"></hr>
 
         <div className="profile-details">
           <p>${user.price || '30'} per dog</p>
