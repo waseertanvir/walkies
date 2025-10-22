@@ -48,7 +48,7 @@ export default function WalkerProfile() {
 
         <div className="safety-section mt-5">
           <h3 style={{ color: "#FFD700" }}>Safety</h3>
-          <p><span id="safety-description">Lorem ipsum dolor sit amet consectetur, adipisicing elit. Esse quibusdam itaque nesciunt a, sed voluptas inventore, repellendus fugit excepturi, cumque voluptates cupiditate provident aspernatur porro aperiam nostrum nulla minus earum.</span></p>
+          <p id="safety-description" style={{ textAlign: "justify" }}>Lorem ipsum dolor sit amet consectetur, adipisicing elit. Esse quibusdam itaque nesciunt a, sed voluptas inventore, repellendus fugit excepturi, cumque voluptates cupiditate provident aspernatur porro aperiam nostrum nulla minus earum.</p>
         </div>
 
         <div className="mt-5 flex justify-between">
