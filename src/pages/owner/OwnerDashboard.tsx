@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { APIProvider, Map, Marker, AdvancedMarker } from '@vis.gl/react-google-maps';
 import ProtectedRoute from '../../auth/ProtectedRoute.tsx'
 import { supabase } from '../../supabaseClient.ts';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import OwnerMenu from '../../components/ownerMenu.tsx';
 import profileBanner from '../../assets/profile_banner.png';
 import '../App.css'
@@ -13,10 +13,14 @@ export default function App() {
   const [userName, setUserName] = useState("");
   const [userRole, setUserRole] = useState("");
   const [users, setUsers] = useState<UserLocation[]>([]);
-
   const [clickedUser, setClickedUser] = useState<UserLocation | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [touchStart, setTouchStart] = useState(0);
 
   const navigate = useNavigate();
+  const location = useLocation();
+  const center = myPosition ?? { lat: 49.24, lng: -123.05 };
+  const [mapCenter, setMapCenter] = useState(center);
 
   type UserLocation = {
     userID: string,
@@ -137,12 +141,31 @@ export default function App() {
     console.log("Updated users: ", users);
   }, [users]);
 
-  const mapContainerStyle = {
-    height: "100vh",
-    width: "100vw"
+
+  // touch handlers for swipe feature on popup
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart(e.touches[0].clientY);
   };
 
-  const center = myPosition ?? { lat: 49.24, lng: -123.05 };
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const touchEnd = e.changedTouches[0].clientY;
+    const diff = touchStart - touchEnd;
+    
+    if (diff > 50 && clickedUser) { // Swiped up
+      navigate(`/owner/walker/${clickedUser.userID}`, { state: { user: clickedUser } });
+    }
+  };
+  
+  // restores state after back click from walkerProfile
+  useEffect(() => {
+    if (location.state?.selectedUser) {
+      setClickedUser(location.state.selectedUser);
+      setMapCenter(location.state.selectedUser.position);
+    } else {
+      setMapCenter(center);
+    }
+  }, [location.state]);
+
 
   //dummy users for testing
   const testUsers: UserLocation[] = [
@@ -168,7 +191,7 @@ export default function App() {
       timestamp: new Date(),
     },
   ];
-
+  
   const allUsers = [...users, ...testUsers];
 
   return (
@@ -179,7 +202,7 @@ export default function App() {
         <Map
           mapId={import.meta.env.VITE_GOOGLE_MAP_ID}
           style={{ width: '100vw', height: '100vh' }}
-          defaultCenter={center}
+          defaultCenter={mapCenter}
           defaultZoom={15}
           disableDefaultUI={true}
           clickableIcons={false}
@@ -197,7 +220,11 @@ export default function App() {
               <AdvancedMarker
                 key={user.userID}
                 position={user.position}
-                onClick={() => setClickedUser(user)}
+                onClick={() => {
+                  setClickedUser(user);
+                  setMapCenter(user.position);
+                }
+                }
               >
                 {/* Custom circular marker */}
                 <div
@@ -230,14 +257,20 @@ export default function App() {
             </AdvancedMarker>
           )}
         </Map>
+
           {clickedUser && (
-            <div className="status-container">
+            <div className={`status-container ${isExpanded ? 'expanded' : ''}`}>
               <img 
                 src={profileBanner}
                 alt={clickedUser.name}
                 className="status-image"
               />
-              <div className="status-box">
+              <div 
+                className="status-box"
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}
+                onClick={() => clickedUser && navigate(`/owner/walker/${clickedUser.userID}`, { state: { user: clickedUser } })}
+              >
                 <div className="header">
                   <span className="name">{clickedUser.name}</span>
                   <div className="rating">
@@ -255,6 +288,7 @@ export default function App() {
               </div>
             </div>
           )}
+        
           {!clickedUser && (
             <div className="absolute bottom-0 rounded-t-xl rounded-b-none bg-wsage w-full h-[10vh] flex justify-center items-center gap-20">
               <button className="p-4 rounded-3xl bg-worange" onClick={() => navigate("/owner/broadcast")}>

@@ -14,6 +14,8 @@ import MySessions from './pages/MySessions.tsx'
 import ApplicationsReview from './pages/ApplicationsReview.tsx'
 import AuthCallback from './pages/AuthCallback.tsx'
 import OwnerDashboard from './pages/owner/OwnerDashboard.tsx'
+import WalkerProfile from './pages/owner/walkerProfile';
+
 
 const router = createBrowserRouter([
   {
@@ -64,6 +66,10 @@ const router = createBrowserRouter([
     path: "/owner/dashboard",
     Component: OwnerDashboard
   },
+  {
+    path: "/owner/walker/:id",
+    Component: WalkerProfile
+  }
 ]);
 
 
