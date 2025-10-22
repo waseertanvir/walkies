@@ -244,7 +244,7 @@ export default function Dashboard() {
 
             <Card 
               className="cursor-pointer hover:shadow-lg transition-shadow"
-              onClick={() => navigate('/profile')}
+              onClick={() => navigate('/userprofile')}
             >
               <div className="flex items-center">
                 <div className="w-12 h-12 bg-wsage rounded-full flex items-center justify-center text-white text-xl mr-4">

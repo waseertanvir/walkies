@@ -15,6 +15,8 @@ import ApplicationsReview from './pages/ApplicationsReview.tsx'
 import AuthCallback from './pages/AuthCallback.tsx'
 import OwnerDashboard from './pages/owner/OwnerDashboard.tsx'
 import WalkerProfile from './pages/owner/walkerProfile';
+import MainProfile from './pages/MainProfile.tsx';
+import OwnerDogs from './pages/OwnerDogs.tsx'
 
 
 const router = createBrowserRouter([
@@ -29,6 +31,14 @@ const router = createBrowserRouter([
   {
     path: "/profile",
     Component: Profile
+  },
+  {
+    path: "/userprofile",
+    Component: MainProfile
+  },
+  {
+    path: "/view-dogs",
+    Component: OwnerDogs
   },
   {
     path: "/signup",
