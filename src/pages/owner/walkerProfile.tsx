@@ -19,7 +19,6 @@ export default function WalkerProfile() {
       <div className="profile-content">
         <div className="profile-header">
           <h1>{user.name}</h1>
-
         </div>
 
         <div className="flex justify-between rating-section">
@@ -41,6 +40,11 @@ export default function WalkerProfile() {
         </div>
 
         <hr className="mt-5 mb-5"></hr>
+
+        <div className="dog-limit-section">
+          <h3 style={{ color: "#FFD700" }}>Number of Dogs</h3>
+          <p><span id="dog-limit-count">3</span> dogs per session of book a private session</p>
+        </div>
 
         <div className="profile-details">
           <p>${user.price || '30'} per dog</p>
