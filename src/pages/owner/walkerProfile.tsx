@@ -36,6 +36,11 @@ export default function WalkerProfile() {
 
         <hr className="mt-5 mb-5"></hr>
 
+        <div className="user-provided-quote" style={{ textAlign: "justify" }}>
+          Lorem ipsum dolor sit amet, consectetur adipisicing elit. Nisi sint ad vero, corrupti est esse, repudiandae totam impedit placeat minus illo tempore dolore quasi sequi ex nesciunt voluptates rerum eligendi.
+        </div>
+
+
         <div className="profile-details">
           <p>${user.price || '30'} per dog</p>
           <p>Capacity {user.capacity || '2/3'} Dogs</p>
