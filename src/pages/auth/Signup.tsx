@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import logo from '../assets/Logo.png'
-import { supabase } from "../supabaseClient";
+import logo from '../../assets/Logo.png'
+import { supabase } from "../../supabaseClient";
 import { useNavigate } from 'react-router';
 
 export default function Signup() {
