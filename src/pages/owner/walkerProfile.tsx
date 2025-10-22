@@ -2,14 +2,21 @@ import { useLocation, useNavigate } from 'react-router';
 import profileBanner from '../../assets/profile_banner.png';
 import { Star, BadgeCheck } from "lucide-react";
 import '../App.css'
+import RequestWalk from "./RequestWalk";
+import { useState } from "react";
 
 export default function WalkerProfile() {
   const location = useLocation();
   const navigate = useNavigate();
   const user = location.state?.user;
+  const [showRequestWalkPage, setShowRequestWalkPage] = useState(false);
 
   if (!user) {
     return <div>User not found</div>;
+  }
+
+  if (showRequestWalkPage) {
+    return <RequestWalk />;
   }
 
   return (
@@ -55,11 +62,11 @@ export default function WalkerProfile() {
           <button className="back-btn" onClick={() => navigate('/owner/dashboard', { state: { selectedUser: user } })}>
             Back
           </button>
-          <button className="request-btn">
+          <button className="back-btn" onClick={() => setShowRequestWalkPage(true)}>
             Request Walk
           </button>
-        </div>
       </div>
     </div>
+    </div >
   );
 }
