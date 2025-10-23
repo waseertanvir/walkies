@@ -509,18 +509,9 @@ export default function Profile() {
         setIsNewUser(isIncomplete);
         const profileAge = Date.now() - new Date(profileData.created_at).getTime();
         setCanChangeRole(isIncomplete || profileAge < 5 * 60 * 1000);
-
-        if (isIncomplete && user.email) {
-          const emailName = user.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
-          setFormData(prev => ({ ...prev, full_name: emailName }));
-        }
       } else {
         setIsNewUser(true);
         setCanChangeRole(true);
-        if (user.email) {
-          const emailName = user.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
-          setFormData(prev => ({ ...prev, full_name: emailName }));
-        }
       }
 
       setLoading(false);
