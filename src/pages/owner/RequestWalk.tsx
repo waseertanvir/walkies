@@ -2,6 +2,7 @@ import { useLocation, useNavigate } from 'react-router';
 import '../App.css'
 import { ArrowLeft, X } from "lucide-react";
 import { useState } from 'react';
+import { APIProvider, Map, Marker, AdvancedMarker } from '@vis.gl/react-google-maps';
 
 export default function RequestWalk() {
   const location = useLocation();
@@ -11,10 +12,13 @@ export default function RequestWalk() {
   const [selectActivity, setSelectActivity] = useState("");
   const [durationHours, setDurationHours] = useState("");
   const [myPosition, setMyPosition] = useState<{ lat: number; lng: number } | null>(null);
+  const center = myPosition ?? { lat: 49.24, lng: -123.05 };
+  const [mapCenter, setMapCenter] = useState(center);
 
   if (!user) {
     return <div>User not found</div>;
   }
+
 
   return (
     <div
@@ -104,7 +108,7 @@ export default function RequestWalk() {
             type="checkbox"
             id="durationCheckBox"
             name="durationCheckBox"
-            checked={durationHours} 
+            checked={durationHours}
             onChange={(e) => setDurationHours(e.target.checked)}
             className="h-4 w-4 text-worange focus:ring-worange border-gray-300 rounded"
           />
@@ -130,6 +134,46 @@ export default function RequestWalk() {
           onChange={(e) => setDurationHours(e.target.value)}
           style={{ width: "100%" }}
         />
+      </div>
+
+      <div className="mapSection"
+        style={{
+          margin: "20px",
+          padding: "5px",
+          borderRadius: "6px",
+          backgroundColor: "white",
+          border: "1px solid #ccc",
+          width: "90%",
+          height: "40vh"
+        }}>
+        <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}>
+          <Map
+            mapId={import.meta.env.VITE_GOOGLE_MAP_ID}
+            style={{ width: '100%', height: '100%' }}
+            defaultCenter={mapCenter}
+            defaultZoom={15}
+            disableDefaultUI={true}
+            clickableIcons={false}
+          >
+            {myPosition && (
+              <AdvancedMarker
+                position={myPosition}
+                onClick={() => console.log('clicked my position: ', myPosition)}
+              >
+                <div
+                  style={{
+                    width: '20px',
+                    height: '20px',
+                    borderRadius: '50%',
+                    backgroundColor: '#FE7F2D',
+                    border: '3px solid white',
+                  }}
+                />
+              </AdvancedMarker>
+            )}
+          </Map>
+        </APIProvider>
+
       </div>
 
       <div className="flex justify-center w-full">
