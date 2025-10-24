@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { APIProvider, Map, Marker, AdvancedMarker } from '@vis.gl/react-google-maps';
+import { APIProvider, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
 import ProtectedRoute from '../../auth/ProtectedRoute.tsx'
 import { supabase } from '../../supabaseClient.ts';
 import { useLocation, useNavigate } from 'react-router';
@@ -279,7 +279,7 @@ export default function App() {
                   </div>
                 </div>
                 <button className="request-button" onClick={() => setClickedUser(null)}>
-                  Request
+                  Details
                 </button>
                 <div className="details">
                   <span className="price">${'30'} per dog</span>

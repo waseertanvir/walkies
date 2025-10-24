@@ -6,32 +6,35 @@ import { Card, Button, StatusPill } from '../../components/ui';
 import { useNavigate } from 'react-router';
 import '../../pages/App.css';
 
-interface Walk {
+export interface Walk {
   id: string;
-  dog_name: string;
-  dog_photo_url?: string;
-  date: string;
-  time: string;
-  status: string;
-  owner_name?: string;
-  duration_minutes?: number;
-  owners?: { full_name: string };
+  owner_id: string;
+  walker_id: string | null;
+  pet_id: string;
+  status: 'draft' | 'pending' | 'accepted' | 'in_progress' | 'completed' | 'cancelled';
+  start_time: string; 
+  duration_minutes: number;
+  notes: string | null;
+  compensation: number;
+  meeting_location: string | null;
+  special_instructions: string | null;
+  created_at: string; 
+  updated_at: string; 
+  applications: string[] | null;
 }
 
 export default function WalkerDashboard() {
   const [username, setUsername] = useState('');
   const [walks, setWalks] = useState<Walk[]>([]);
-  const [activeWalk, setActiveWalk] = useState<Walk | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Fetch profile
       const { data: profile } = await supabase
         .from('profiles')
         .select('full_name')
@@ -40,33 +43,27 @@ export default function WalkerDashboard() {
 
       setUsername(profile?.full_name || 'Walker');
 
+      // Fetch all sessions assigned to walker
       const { data, error } = await supabase
-        .from('walks')
-        .select(`
-          *,
-          owners:profiles!walks_owner_id_fkey(full_name)
-        `)
+        .from('sessions')
+        .select('*')
         .eq('walker_id', user.id)
-        .order('date', { ascending: false });
+        .order('start_time', { ascending: false });
 
-      if (error) console.error('Error fetching walks:', error.message);
-      const walksData: Walk[] = data || [];
-
-      const mappedWalks = walksData.map((walk) => ({
-        ...walk,
-        owner_name: walk.owners?.full_name || 'Unknown',
-      }));
-
-      setWalks(mappedWalks);
-
-      const currentWalk = mappedWalks.find(
-        (walk) => walk.status === 'Accepted' || walk.status === 'In Progress'
-      );
-
-      if (currentWalk) {
-        setActiveWalk(currentWalk);
+      if (error) {
+        console.error('Error fetching walks:', error.message);
+        setLoading(false);
+        return;
       }
 
+      const now = new Date();
+
+      const walksWithFlags = (data || []).map((walk: Walk) => ({
+        ...walk,
+        hasStarted: new Date(walk.start_time) <= now && walk.status !== 'completed'
+      })) as (Walk & { hasStarted: boolean })[];
+
+      setWalks(walksWithFlags);
       setLoading(false);
     };
 
@@ -92,35 +89,6 @@ export default function WalkerDashboard() {
           Welcome, {username}
         </h1>
 
-        {activeWalk && (
-          <Card className="mb-6 border-l-4 border-worange w-full max-w-md">
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="font-semibold text-wblue mb-2">Current Walk</h3>
-                <p className="text-sm text-gray-600 mb-1">
-                  Owner: {activeWalk.owner_name || 'Unknown'}
-                </p>
-                <p className="text-sm text-gray-600">Dog: {activeWalk.dog_name}</p>
-                <p className="text-sm text-gray-600">
-                  Duration: {activeWalk.duration_minutes || 30} minutes
-                </p>
-                <p className="text-sm text-gray-600">
-                  Date: {activeWalk.date} • Time: {activeWalk.time}
-                </p>
-              </div>
-              <div className="text-right">
-                <StatusPill status={activeWalk.status} className="mb-2" />
-                <Button
-                  size="sm"
-                  onClick={() => navigate(`/track/${activeWalk.id}`)}
-                >
-                  Track
-                </Button>
-              </div>
-            </div>
-          </Card>
-        )}
-
         <Button className="mb-8" onClick={() => navigate('/requests')}>
           Find Walks
         </Button>
@@ -134,43 +102,28 @@ export default function WalkerDashboard() {
             {walks.map((walk) => (
               <Card
                 key={walk.id}
-                className="bg-[#D9D9D9] p-4 hover:shadow-lg transition flex flex-col items-center text-center rounded-2xl"
+                className={`bg-[#D9D9D9] p-4 hover:shadow-lg transition flex flex-col items-center text-center rounded-2xl ${
+                  (walk as any).hasStarted ? 'border-4 border-green-500' : ''
+                }`}
               >
-                <div className="w-24 h-24 rounded-full bg-gray-300 flex items-center justify-center mb-3 overflow-hidden border border-gray-400">
-                  {walk.dog_photo_url ? (
-                    <img
-                      src={walk.dog_photo_url}
-                      alt={walk.dog_name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-white text-xl font-bold">
-                      {walk.dog_name[0]}
-                    </span>
-                  )}
-                </div>
-
                 <h2 className="text-xl font-semibold text-wblue mb-1">
-                  {walk.dog_name}
+                  Dog: {walk.pet_id}
                 </h2>
 
                 <p className="text-gray-700 text-sm mb-2">
-                  {walk.date} • {walk.time}
+                  Start: {new Date(walk.start_time).toLocaleString()}
                 </p>
 
                 <p className="text-gray-700 text-sm mb-2">
-                  Owner: {walk.owner_name}
+                  Duration: {walk.duration_minutes} minutes
                 </p>
 
-                <span
-                  className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    walk.status === 'Accepted'
-                      ? 'bg-green-300 text-green-800'
-                      : 'bg-yellow-300 text-yellow-800'
-                  }`}
-                >
-                  {walk.status}
-                </span>
+                <p className="text-gray-700 text-sm mb-2">
+                  Compensation: ${walk.compensation}
+                </p>
+
+                <StatusPill status={walk.status} />
+                <Button children={'Track'} onClick={() => navigate(`/track/${walk.id}`)}></Button>
               </Card>
             ))}
           </div>

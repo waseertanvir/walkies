@@ -47,7 +47,7 @@ const router = createBrowserRouter([
     Component: OwnerDogs
   },
   {
-    path: "/track",
+    path: "/track/:id",
     Component: Track
   },
   {
