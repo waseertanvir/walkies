@@ -40,6 +40,7 @@ export default function Track() {
         .in('status', ['accepted', 'in_progress'])
         .single();
 
+      console.log(activeRequest)
       if (!activeRequest) {
         navigate('/');
         return;

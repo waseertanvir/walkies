@@ -20,6 +20,7 @@ interface ActiveRequest {
   compensation: number;
   pet_name?: string;
   walker_name?: string;
+  owner_name?: string;
 }
 
 export default function Dashboard() {
@@ -68,6 +69,17 @@ export default function Dashboard() {
               .single();
             petName = petData?.name || 'Unknown Pet';
           }
+          
+          // fetch owner name
+          let ownerName = 'Unknown Owner';
+          if (activeReq.owner_id) {
+            const { data: ownerData } = await supabase
+              .from('profiles')
+              .select('full_name')
+              .eq('id', activeReq.owner_id)
+              .single();
+            ownerName = ownerData?.full_name || 'Unknown Owner';
+          }
 
           // Fetch walker name
           let walkerName = 'Unknown Walker';
@@ -87,6 +99,7 @@ export default function Dashboard() {
             duration_minutes: activeReq.duration_minutes,
             compensation: activeReq.compensation,
             pet_name: petName,
+            owner_name: ownerName,
             walker_name: walkerName
           });
         }
@@ -171,7 +184,14 @@ export default function Dashboard() {
                     {profile?.role === 'owner' ? 'Active Walk' : 'Current Walk'}
                   </h3>
                   <p className="text-sm text-gray-600 mb-1">
-                    {profile?.role === 'owner' ? 'Walker' : 'Pet'}: {activeRequest.walker_name || activeRequest.pet_name}
+                    {/* {profile?.role === 'owner' ? 'Walker' : 'Pet'}: {activeRequest.walker_name || activeRequest.pet_name} */}
+                    Owner: {activeRequest.owner_name}
+                  </p>
+                  <p className="text-sm text-gray-600 mb-1">
+                    Dog: {activeRequest.pet_name}
+                  </p>
+                  <p className="text-sm text-gray-600 mb-1">
+                    Walker: {activeRequest.walker_name}
                   </p>
                   <p className="text-sm text-gray-600">
                     Duration: {activeRequest.duration_minutes} minutes
