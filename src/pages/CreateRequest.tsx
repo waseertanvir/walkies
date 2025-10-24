@@ -2,25 +2,14 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { supabase } from '../supabaseClient';
 import ProtectedRoute from '../auth/ProtectedRoute';
-import { Card, Button, StatusPill } from '../components/ui';
+import { Card, Button } from '../components/ui';
+import { ChevronLeft } from 'lucide-react';
 
 interface Pet {
   id: string;
   name: string;
   breed: string;
   description: string;
-}
-
-interface Request {
-  id: string;
-  status: string;
-  start_time: string;
-  duration_minutes: number;
-  compensation: number;
-  notes: string;
-  pets: { name: string; breed: string };
-  profiles: { full_name: string };
-  created_at: string;
 }
 
 export default function CreateRequest() {
@@ -94,14 +83,20 @@ export default function CreateRequest() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-wblue p-4">
-        <div className="max-w-2xl mx-auto">
-          <div className="flex items-center mb-6">
-            <Button variant="secondary" onClick={() => navigate('/')} className="mr-4">
-              ← Back
-            </Button>
-            <h1 className="text-2xl font-bold text-white">Create Walk Request</h1>
-          </div>
+      <div className="min-h-screen bg-wblue p-4 relative">
+        <div className="absolute top-4 left-4 z-50">
+          <button
+            onClick={() => navigate('/')}
+            className="bg-wolive text-black p-2 rounded-full shadow-lg hover:bg-green-600 transition-colors"
+          >
+            <ChevronLeft size={30} />
+          </button>
+        </div>
+
+        <div className="max-w-2xl mx-auto pt-12">
+          <h1 className="text-2xl font-bold text-white mb-6 text-center">
+            Create Walk Request
+          </h1>
 
           <Card>
             <form onSubmit={handleSubmit} className="space-y-4">

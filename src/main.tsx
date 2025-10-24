@@ -17,6 +17,8 @@ import OwnerDashboard from './pages/owner/OwnerDashboard.tsx'
 import WalkerProfile from './pages/owner/walkerProfile';
 import MainProfile from './pages/MainProfile.tsx';
 import OwnerDogs from './pages/OwnerDogs.tsx'
+import WalkerDashboard from './pages/walker/WalkerDashboard.tsx'
+import CompletedWalks from './pages/walker/CompletedWalks.tsx'
 
 
 const router = createBrowserRouter([
@@ -79,6 +81,14 @@ const router = createBrowserRouter([
   {
     path: "/owner/walker/:id",
     Component: WalkerProfile
+  },
+  {
+    path: "/walker/dashboard",
+    Component: WalkerDashboard
+  },
+  {
+    path: "/walker/completed-walks",
+    Component: CompletedWalks
   }
 ]);
 

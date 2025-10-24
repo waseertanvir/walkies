@@ -42,7 +42,15 @@ export default function MainProfile() {
       <div className="min-h-screen bg-[#619B8A] p-4">
         <div className="absolute top-4 left-4 z-50">
           <button
-            onClick={() => navigate('/')}
+            onClick={() => {
+              if (profile?.role === 'walker') {
+                navigate('/walker/dashboard');
+              } else if (profile?.role === 'owner') {
+                navigate('/owner/dashboard');
+              } else {
+                navigate('/'); 
+              }
+            }}
             className="bg-wolive text-black p-2 rounded-full shadow-lg hover:bg-green-600 transition-colors"
           >
             <ChevronLeft size={30} />
