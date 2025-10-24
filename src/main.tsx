@@ -31,6 +31,10 @@ const router = createBrowserRouter([
     Component: Login
   },
   {
+    path: "/signup",
+    Component: Signup
+  },
+  {
     path: "/profile",
     Component: Profile
   },
@@ -41,10 +45,6 @@ const router = createBrowserRouter([
   {
     path: "/view-dogs",
     Component: OwnerDogs
-  },
-  {
-    path: "/signup",
-    Component: Signup
   },
   {
     path: "/track",
@@ -63,10 +63,6 @@ const router = createBrowserRouter([
     Component: MySessions
   },
   {
-    path: "/profile",
-    Component: Profile
-  },
-  {
     path: "/applications/:sessionId",
     Component: ApplicationsReview
   },
@@ -74,7 +70,7 @@ const router = createBrowserRouter([
     path: "/auth/callback",
     Component: AuthCallback
   },
-    {
+  {
     path: "/owner/dashboard",
     Component: OwnerDashboard
   },
