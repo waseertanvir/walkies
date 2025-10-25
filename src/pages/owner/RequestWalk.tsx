@@ -21,27 +21,19 @@ export default function RequestWalk() {
 
 
   return (
-    <div
-      className="request-walk justify-center">
+    <div className="request-walk justify-center">
       <button
-        onClick={() => console.log("Yeah Buddy! Lightweight!")}
-        className="bg-wolive text-black p-2 m-5 rounded-full">
+        className="bg-wolive text-black p-2 m-5 rounded-full"
+        onClick={() => console.log("Yeah Buddy! Lightweight!")}>
         <ArrowLeft size={30} />
       </button>
 
-      <div style={{ alignItems: "center", margin: "20px" }}>
+      <div className='flex items-center m-5'>
         <select
           id="options"
+          className='p-1 rounded-md bg-white border border-gray-300 w-full'
           value={selectDog}
-          onChange={(e) => setSelectDog(e.target.value)}
-          style={{
-            padding: "5px",
-            borderRadius: "6px",
-            backgroundColor: "white",
-            border: "1px solid #ccc",
-            width: "100%"
-          }}
-        >
+          onChange={(e) => setSelectDog(e.target.value)}  >
           <option value="">Select your dog</option>
           <option value="apple">Rottweiler</option>
           <option value="banana">German Shepherd</option>
@@ -49,19 +41,12 @@ export default function RequestWalk() {
         </select>
       </div>
 
-      <div style={{ alignItems: "center", margin: "20px" }}>
+      <div className='flex items-center m-5'>
         <select
           id="options"
+          className='p-1 rounded-md bg-white border border-gray-300 w-full'
           value={selectActivity}
-          onChange={(e) => setSelectActivity(e.target.value)}
-          style={{
-            padding: "5px",
-            borderRadius: "6px",
-            backgroundColor: "white",
-            border: "1px solid #ccc",
-            width: "100%"
-          }}
-        >
+          onChange={(e) => setSelectActivity(e.target.value)}>
           <option value="">Select the activity</option>
           <option value="apple">Pet Sitting</option>
           <option value="banana">Walking</option>
@@ -70,16 +55,8 @@ export default function RequestWalk() {
       </div>
 
       <div
-        className="flex justify-between"
-        style={{
-          alignItems: "center",
-          margin: "20px",
-          padding: "5px",
-          borderRadius: "6px",
-          backgroundColor: "white",
-          border: "1px solid #ccc",
-        }}>
-        <label htmlFor="duration" style={{ width: "45%" }}>Enter duration:</label>
+        className="flex justify-between items-center m-5 p-1 rounded-md bg-white border border-gray-300">
+        <label htmlFor="duration">Enter duration:</label>
         <input
           type="number"
           id="duration"
@@ -89,15 +66,10 @@ export default function RequestWalk() {
           placeholder="e.g. 2.5"
           value={durationHours}
           onChange={(e) => setDurationHours(e.target.value)}
-          style={{ width: "45%" }}
         />
       </div>
       <div
-        className="grid gap-2 p-2 rounded-md bg-white border border-gray-300"
-        style={{
-          margin: "20px"
-        }}
-      >
+        className="grid m-5 gap-2 p-2 rounded-md bg-white border border-gray-300">
         <label className="font-medium">Drop off location:</label>
         <div className="flex items-center justify-between">
           <label htmlFor="durationCheckBox" className="mr-2">
@@ -115,15 +87,7 @@ export default function RequestWalk() {
         </div>
       </div>
 
-      <div style={{
-        alignItems: "center",
-        margin: "20px",
-        padding: "5px",
-        borderRadius: "6px",
-        backgroundColor: "white",
-        border: "1px solid #ccc",
-      }}>
-
+      <div className='flex items-center m-5 p-[5px] rounded-md bg-white border border-[#ccc]'>
         <input
           type="text"
           id="address"
@@ -132,42 +96,24 @@ export default function RequestWalk() {
           placeholder="Address"
           value={durationHours}
           onChange={(e) => setDurationHours(e.target.value)}
-          style={{ width: "100%" }}
         />
       </div>
 
-      <div className="mapSection"
-        style={{
-          margin: "20px",
-          padding: "5px",
-          borderRadius: "6px",
-          backgroundColor: "white",
-          border: "1px solid #ccc",
-          width: "90%",
-          height: "40vh"
-        }}>
+      <div className="m-5 p-1 rounded-md bg-white border border-gray-300 h-40">
         <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}>
           <Map
             mapId={import.meta.env.VITE_GOOGLE_MAP_ID}
-            style={{ width: '100%', height: '100%' }}
             defaultCenter={mapCenter}
             defaultZoom={15}
             disableDefaultUI={true}
-            clickableIcons={false}
-          >
+            clickableIcons={false} >
             {myPosition && (
               <AdvancedMarker
                 position={myPosition}
                 onClick={() => console.log('clicked my position: ', myPosition)}
               >
                 <div
-                  style={{
-                    width: '20px',
-                    height: '20px',
-                    borderRadius: '50%',
-                    backgroundColor: '#FE7F2D',
-                    border: '3px solid white',
-                  }}
+                  className='w-[20px] h-[20px] rounded-full bg-[#FE7F2D] border-3 border-white'
                 />
               </AdvancedMarker>
             )}
