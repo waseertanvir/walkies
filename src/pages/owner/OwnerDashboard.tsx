@@ -6,6 +6,9 @@ import { useLocation, useNavigate } from 'react-router';
 import OwnerMenu from '../../components/ownerMenu.tsx';
 import profileBanner from '../../assets/profile_banner.png';
 import '../App.css'
+import { useDeviceState } from "../../DeviceStateContext";
+import logo from '../../assets/Logo.png'
+import Loader from "../../Loader";
 
 export default function App() {
   const [myPosition, setMyPosition] = useState<{ lat: number; lng: number } | null>(null);
@@ -21,6 +24,8 @@ export default function App() {
   const location = useLocation();
   const center = myPosition ?? { lat: 49.24, lng: -123.05 };
   const [mapCenter, setMapCenter] = useState(center);
+  const { state } = useDeviceState();
+  const [loading, setLoading] = useState(true);
 
   type UserLocation = {
     userID: string,
@@ -150,12 +155,12 @@ export default function App() {
   const handleTouchEnd = (e: React.TouchEvent) => {
     const touchEnd = e.changedTouches[0].clientY;
     const diff = touchStart - touchEnd;
-    
+
     if (diff > 50 && clickedUser) { // Swiped up
       navigate(`/owner/walker/${clickedUser.userID}`, { state: { user: clickedUser } });
     }
   };
-  
+
   // restores state after back click from walkerProfile
   useEffect(() => {
     if (location.state?.selectedUser) {
@@ -191,7 +196,7 @@ export default function App() {
       timestamp: new Date(),
     },
   ];
-  
+
   const allUsers = [...users, ...testUsers];
 
   return (
@@ -258,39 +263,40 @@ export default function App() {
           )}
         </Map>
 
-          {clickedUser && (
-            <div className={`status-container ${isExpanded ? 'expanded' : ''}`}>
-              <img 
-                src={profileBanner}
-                alt={clickedUser.name}
-                className="status-image"
-              />
-              <div 
-                className="status-box"
-                onTouchStart={handleTouchStart}
-                onTouchEnd={handleTouchEnd}
-                onClick={() => clickedUser && navigate(`/owner/walker/${clickedUser.userID}`, { state: { user: clickedUser } })}
-              >
-                <div className="header">
-                  <span className="name">{clickedUser.name}</span>
-                  <div className="rating">
-                    <span>★</span>
-                    <span>4.53 (12)</span>
-                  </div>
-                </div>
-                <button className="request-button" onClick={() => setClickedUser(null)}>
-                  Details
-                </button>
-                <div className="details">
-                  <span className="price">${'30'} per dog</span>
-                  <span className="capacity">Capacity {'2/3'} Dogs</span>
+        {clickedUser && (
+          <div className={`status-container ${isExpanded ? 'expanded' : ''}`}>
+            <img
+              src={profileBanner}
+              alt={clickedUser.name}
+              className="status-image"
+            />
+            <div
+              className="status-box"
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
+              onClick={() => clickedUser && navigate(`/owner/walker/${clickedUser.userID}`, { state: { user: clickedUser } })}
+            >
+              <div className="header">
+                <span className="name">{clickedUser.name}</span>
+                <div className="rating">
+                  <span>★</span>
+                  <span>4.53 (12)</span>
                 </div>
               </div>
+              <button className="request-button" onClick={() => setClickedUser(null)}>
+                Details
+              </button>
+              <div className="details">
+                <span className="price">${'30'} per dog</span>
+                <span className="capacity">Capacity {'2/3'} Dogs</span>
+              </div>
             </div>
-          )}
-        
-          {!clickedUser && (
-            <div className="absolute bottom-0 rounded-t-xl rounded-b-none bg-wsage w-full h-[10vh] flex justify-center items-center gap-20">
+          </div>
+        )}
+
+        {!clickedUser && state == "IDLE" && (
+          <div className="absolute bottom-0 rounded-t-xl rounded-b-none bg-wsage w-full h-[10vh] flex justify-center items-center gap-20">
+            <div>
               <button className="p-4 rounded-3xl bg-worange" onClick={() => navigate("/owner/broadcast")}>
                 Broadcast
               </button>
@@ -298,8 +304,27 @@ export default function App() {
                 Schedule
               </button>
             </div>
-          )}
-        
+          </div>
+        )}
+
+        {!clickedUser && state === 'BROADCAST' && (
+          <div className="absolute bottom-0 w-full h-auto rounded-t-xl rounded-b-none bg-wsage p-5">
+            <div className="flex items-center w-full">
+              <p className="flex-1">Waiting for walker</p>
+
+              <img
+                src={logo}
+                alt="Logo"
+                className="max-w-[10%] h-auto ml-auto"
+              />
+            </div>
+
+            <div className='w-full'>
+              <Loader />
+            </div>
+          </div>
+        )}
+
 
       </APIProvider>
     </ProtectedRoute>

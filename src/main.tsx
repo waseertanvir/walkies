@@ -19,7 +19,8 @@ import MainProfile from './pages/MainProfile.tsx';
 import OwnerDogs from './pages/OwnerDogs.tsx'
 import WalkerDashboard from './pages/walker/WalkerDashboard.tsx'
 import CompletedWalks from './pages/walker/CompletedWalks.tsx'
-
+import Broadcast from './pages/owner/Broadcast.tsx'
+import DeviceStateContext from './DeviceStateContext.tsx'
 
 const router = createBrowserRouter([
   {
@@ -75,6 +76,10 @@ const router = createBrowserRouter([
     Component: OwnerDashboard
   },
   {
+    path: "/owner/broadcast",
+    Component: Broadcast
+  },
+  {
     path: "/owner/walker/:id",
     Component: WalkerProfile
   },
@@ -91,10 +96,11 @@ const router = createBrowserRouter([
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    {/* <div className='flex min-h-screen items-center justify-center bg-gray-50'> */}
+    <DeviceStateContext>
       <div className='min-h-screen flex flex-col items-center justify-center'>
         <RouterProvider router={router} />
       </div>
-    {/* </div> */}
+    </DeviceStateContext>
+
   </StrictMode>,
 )

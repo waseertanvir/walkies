@@ -4,20 +4,18 @@ import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
 import ProtectedRoute from '../auth/ProtectedRoute.tsx'
 import { supabase } from '../supabaseClient.ts';
 import { useNavigate } from 'react-router';
+import { useDeviceState } from "../DeviceStateContext";
 
 export default function App() {
   const [isTracking, setIsTracking] = useState(false);
   const [myPosition, setMyPosition] = useState<{ lat: number; lng: number } | null>(null);
-
   const [userID, setUserID] = useState("");
   const [userName, setUserName] = useState("");
   const [userRole, setUserRole] = useState("");
   const [users, setUsers] = useState<UserLocation[]>([]);
-
   const [clickedUser, setClickedUser] = useState<UserLocation | null>(null);
-
   const navigate = useNavigate();
-
+  const { state } = useDeviceState();
 
   type UserLocation = {
     userID: string,
@@ -26,7 +24,6 @@ export default function App() {
     position: { lat: number; lng: number },
     timestamp: Date,
   };
-
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY

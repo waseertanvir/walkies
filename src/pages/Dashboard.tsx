@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import { supabase } from '../supabaseClient';
 import ProtectedRoute from '../auth/ProtectedRoute';
 import { Card, StatusPill, Button, FloatingActionButton } from '../components/ui';
+import { useDeviceState } from "../DeviceStateContext";
 
 interface UserProfile {
   id: string;
@@ -33,6 +34,7 @@ export default function Dashboard() {
     totalEarnings: 0
   });
   const [loading, setLoading] = useState(true);
+  const { state } = useDeviceState();
 
   useEffect(() => {
     const fetchDashboardData = async () => {
