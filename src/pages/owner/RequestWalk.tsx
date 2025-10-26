@@ -19,12 +19,11 @@ export default function RequestWalk() {
     return <div>User not found</div>;
   }
 
-
   return (
     <div>
       <button
         className="bg-wolive text-black p-2 m-5 w-11.5 rounded-full"
-        onClick={() => console.log("Yeah Buddy! Lightweight!")}>
+        onClick={() => navigate(-1)}>
         <ArrowLeft size={30} />
       </button>
 
