@@ -19,7 +19,8 @@ import MainProfile from './pages/MainProfile.tsx';
 import OwnerDogs from './pages/OwnerDogs.tsx'
 import WalkerDashboard from './pages/walker/WalkerDashboard.tsx'
 import CompletedWalks from './pages/walker/CompletedWalks.tsx'
-import Broadcast from './pages/owner/Broadcast.tsx'
+import Broadcast from './pages/owner/BroadcastWalk.tsx'
+import ScheduleWalk from './pages/owner/ScheduleWalk.tsx'
 import DeviceStateContext from './DeviceStateContext.tsx'
 
 const router = createBrowserRouter([
@@ -78,6 +79,10 @@ const router = createBrowserRouter([
   {
     path: "/owner/broadcast",
     Component: Broadcast
+  },
+  {
+    path: "/owner/schedule",
+    Component: ScheduleWalk
   },
   {
     path: "/owner/walker/:id",
