@@ -40,7 +40,7 @@ export default function MainProfile() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-[#619B8A] p-4">
-        <div className="absolute top-4 left-4 z-50">
+        <div className="top-4 left-4 z-50">
           <button
             onClick={() => {
               if (profile?.role === 'walker') {
