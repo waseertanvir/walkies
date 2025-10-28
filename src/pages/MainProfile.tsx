@@ -48,7 +48,7 @@ export default function MainProfile() {
               } else if (profile?.role === 'owner') {
                 navigate('/owner/dashboard');
               } else {
-                navigate('/'); 
+                navigate('/');
               }
             }}
             className="bg-wolive text-black p-2 rounded-full shadow-lg hover:bg-green-600 transition-colors"
@@ -58,7 +58,7 @@ export default function MainProfile() {
         </div>
 
         <div className="max-w-3xl mx-auto mt-16">
-          <h1 className="text-3xl font-bold text-white mb-6 text-center">Profile</h1>
+          <h1 className="text-3xl font-bold text-black mb-6 text-center">Profile</h1>
 
           <div className="flex justify-center mb-8">
             <div className="w-32 h-32 rounded-full bg-gray-300 border-4 border-white flex items-center justify-center shadow-lg">
@@ -66,46 +66,68 @@ export default function MainProfile() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <Card className="bg-[#D9D9D9] p-4">
-              <h2 className="font-semibold text-lg mb-2">Full Name</h2>
-              <p>{profile?.full_name || '—'}</p>
-            </Card>
-
-            <Card className="bg-[#D9D9D9] p-4">
-              <h2 className="font-semibold text-lg mb-2">Email</h2>
-              <p>{profile?.email || '—'}</p>
-            </Card>
-
-            <Card className="bg-[#D9D9D9] p-4">
-              <h2 className="font-semibold text-lg mb-2">Phone</h2>
-              <p>{profile?.phone || '—'}</p>
-            </Card>
-
-            <Card className="bg-[#D9D9D9] p-4">
-              <h2 className="font-semibold text-lg mb-2">Role</h2>
-              <p className="capitalize">{profile?.role || '—'}</p>
-            </Card>
-
-            <Card className="bg-[#D9D9D9] p-4 md:col-span-2">
-              <h2 className="font-semibold text-lg mb-2">Bio</h2>
-              <p>{profile?.bio || '—'}</p>
+          <div className='grid mb-6'>
+            <Card className="bg-[#D9D9D9] p-4 w-full">
+              <h2 className="font-semibold text-xs text-gray-600 mb-2">
+                Full Name
+              </h2>
+              <input className="w-full font-semibold" type="text" value={profile?.full_name ?? '—'} />
             </Card>
           </div>
 
-          <div className="flex justify-between">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <Card className="bg-[#D9D9D9] p-4">
+              <h2 className="font-semibold text-xs text-gray-600 mb-2">
+                Gender
+              </h2>
+              <input className="w-full font-semibold" type="text" value={profile?.email || '—'} />
+            </Card>
+
+            <Card className="bg-[#D9D9D9] p-4">
+              <h2 className="font-semibold text-xs text-gray-600 mb-2">
+                Birthday
+              </h2>
+              <input className="w-full font-semibold" type="text" value="01-01-2001" />
+            </Card>
+
+          </div>
+
+          <div className='grid mb-6 w-full'>
+            <Card className="bg-[#D9D9D9] p-4 mb-6">
+              <h2 className="font-semibold text-xs text-gray-600 mb-2">
+                Phone Number
+              </h2>
+              <input className="font-semibold" type="text" value="(+1) 123-456-8974" />
+            </Card>
+
+            <Card className="bg-[#D9D9D9] p-4 mb-6">
+              <h2 className="font-semibold text-xs text-gray-600 mb-2">
+                Email
+              </h2>
+              <input className="font-semibold" type="text" value="helloworld@gmail.com" />
+            </Card>
+            
+            <Card className="bg-[#D9D9D9] p-4 mb-6">
+              <h2 className="font-semibold text-xs text-gray-600 mb-2">
+                Edit Description
+              </h2>
+              <input className="font-semibold" type="text" value="Lorem ipsum" />
+            </Card>
+          </div>
+
+          <div className="grid justify-center">
             {profile?.role === 'owner' && (
-              <Button
+              <Button className='mb-6'
                 onClick={() => navigate('/view-dogs')}
               >
-                View Dogs
+                Edit Dogs
               </Button>
             )}
 
             <Button
               onClick={() => navigate('/profile', { state: { cameFromUserProfile: true } })}
             >
-              Edit Profile
+              Save
             </Button>
           </div>
         </div>
