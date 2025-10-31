@@ -11,6 +11,7 @@ export default function ScheduleWalk() {
     const [selectDog, setSelectDog] = useState("");
     const [selectActivity, setSelectActivity] = useState("");
     const [durationHours, setDurationHours] = useState("");
+    const [address, setAddress] = useState("");
     const [myPosition, setMyPosition] = useState<{ lat: number; lng: number } | null>(null);
     const center = myPosition ?? { lat: 49.24, lng: -123.05 };
     const [mapCenter, setMapCenter] = useState(center);
@@ -73,7 +74,7 @@ export default function ScheduleWalk() {
                     step="0.5"
                     placeholder="Date"
                     value={new Date().toString()}
-                    onChange={(e) => setDurationHours(e.target.value)}
+                    //onChange={(e) => setDurationHours(e.target.value)}
                 />
             </div>
 
@@ -88,9 +89,9 @@ export default function ScheduleWalk() {
                     min="0"
                     step="0.5"
                     placeholder="Address"
-                    value={durationHours}
+                    value={address}
                     className='m-2'
-                    onChange={(e) => setDurationHours(e.target.value)}
+                    onChange={(e) => setAddress(e.target.value)}
                 />
 
                 <div className='m-2 h-50'>
@@ -128,9 +129,9 @@ export default function ScheduleWalk() {
                     min="0"
                     step="0.5"
                     placeholder="Address"
-                    value={durationHours}
+                    value={address}
                     className='m-2'
-                    onChange={(e) => setDurationHours(e.target.value)}
+                    onChange={(e) => setAddress(e.target.value)}
                 />
 
                 <div className='m-2 h-50'>
