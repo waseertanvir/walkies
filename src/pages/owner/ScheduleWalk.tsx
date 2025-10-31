@@ -137,7 +137,7 @@ function ScheduleWalkContent() {
                         type="text"
                         placeholder="Address"
                         value={pickupAddress}
-                        className='m-2 '
+                        className='m-2 border border-gray-300 rounded-md p-2'
                         onChange={(e) => setPickupAddress(e.target.value)}
                     />
 
@@ -173,7 +173,7 @@ function ScheduleWalkContent() {
                         type="text"
                         placeholder="Address"
                         value={dropoffAddress}
-                        className='m-2'
+                        className='m-2 border border-gray-300 rounded-md p-2'
                         onChange={(e) => setDropoffAddress(e.target.value)}
                     />
 
