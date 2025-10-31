@@ -120,13 +120,10 @@ function ScheduleWalkContent() {
             <div className='flex items-center m-5 p-[5px] rounded-md bg-white border border-[#ccc]'>
                 <input
                     type="text"
-                    id="address"
-                    min="0"
-                    step="0.5"
+                    id="date"
                     placeholder="Date"
                     value={new Date().toString()}
                     readOnly 
-                    //onChange={(e) => setDurationHours(e.target.value)}
                 />
             </div>
             
@@ -138,12 +135,9 @@ function ScheduleWalkContent() {
                     <input
                         ref={pickupInputRef}
                         type="text"
-                        id="address"
-                        min="0"
-                        step="0.5"
                         placeholder="Address"
                         value={pickupAddress}
-                        className='m-2'
+                        className='m-2 '
                         onChange={(e) => setPickupAddress(e.target.value)}
                     />
 
@@ -177,9 +171,6 @@ function ScheduleWalkContent() {
                     <input
                         ref={dropoffInputRef}
                         type="text"
-                        id="address"
-                        min="0"
-                        step="0.5"
                         placeholder="Address"
                         value={dropoffAddress}
                         className='m-2'
