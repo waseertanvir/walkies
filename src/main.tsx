@@ -102,10 +102,7 @@ const router = createBrowserRouter([
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <DeviceStateContext>
-      <div className='min-h-screen flex flex-col items-center justify-center'>
-        <RouterProvider router={router} />
-      </div>
+      <RouterProvider router={router} />
     </DeviceStateContext>
-
   </StrictMode>,
 )
