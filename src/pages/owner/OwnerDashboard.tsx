@@ -297,10 +297,10 @@ export default function App() {
         {!clickedUser && state == "IDLE" && (
           <div className="absolute bottom-0 rounded-t-xl rounded-b-none bg-wsage w-full h-[10vh] flex justify-center items-center gap-20">
             <div>
-              <button className="p-4 rounded-3xl bg-worange" onClick={() => navigate("/owner/broadcast")}>
+              <button className="p-4 mr-2 rounded-3xl bg-worange" onClick={() => navigate("/owner/broadcast")}>
                 Broadcast
               </button>
-              <button className="p-4 rounded-3xl bg-worange" onClick={() => navigate("/owner/schedule")}>
+              <button className="p-4 ml-2 rounded-3xl bg-worange" onClick={() => navigate("/owner/schedule")}>
                 Schedule
               </button>
             </div>
