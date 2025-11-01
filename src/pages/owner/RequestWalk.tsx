@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from 'react-router';
-import '../App.css'
+// import '../App.css'
 import { ArrowLeft, X } from "lucide-react";
 import { useState } from 'react';
 import { APIProvider, Map, Marker, AdvancedMarker } from '@vis.gl/react-google-maps';
@@ -18,6 +18,44 @@ export default function RequestWalk() {
   if (!user) {
     return <div>User not found</div>;
   }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPet) return;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
+        .from('sessions')
+        .insert({
+          owner_id: user.id,
+          pet_id: selectedPet,
+          status: 'pending',
+          start_time: formData.start_time,
+          duration_minutes: formData.duration_minutes,
+          compensation: formData.compensation,
+          notes: formData.notes,
+          meeting_location: formData.meeting_location,
+          special_instructions: formData.special_instructions
+        });
+
+      if (error) {
+        console.error('Error creating request:', error);
+        alert('Error creating request: ' + error.message);
+        return;
+      }
+
+      alert('Request created successfully!');
+      navigate('/');
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      alert('Unexpected error creating request');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div>
@@ -122,7 +160,7 @@ export default function RequestWalk() {
       </div>
 
       <div className="flex justify-center w-full">
-        <button className="p-4 rounded-3xl bg-worange" onClick={() => { }}>
+        <button className="p-4 rounded-3xl bg-worange" onClick={(handleSubmit) => { }}>
           Request Walk
         </button>
       </div>

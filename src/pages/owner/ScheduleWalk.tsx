@@ -2,7 +2,7 @@ import { useLocation, useNavigate } from 'react-router';
 import '../App.css'
 import { ArrowLeft, X } from "lucide-react";
 import { useState, useRef, useEffect} from 'react';
-import { APIProvider, Map, Marker, AdvancedMarker, useMapsLibrary } from '@vis.gl/react-google-maps';
+import { APIProvider, Map, AdvancedMarker, useMapsLibrary } from '@vis.gl/react-google-maps';
 import { useDeviceState } from "../../DeviceStateContext";
 
 export default function ScheduleWalk() {

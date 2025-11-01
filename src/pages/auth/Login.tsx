@@ -8,30 +8,31 @@ export default function Login() {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [urlParams] = useSearchParams();
+    const [role, setRole] = useState('');
     const message = urlParams.get('message');
 
     const navigate = useNavigate();
 
     const checkProfileCompleteness = async (userId: string) => {
-        const { data: profile } = await supabase
+        const { data: profile, error } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', userId)
             .single();
 
-        return profile && profile.full_name && profile.role && profile.phone;
+        if (error || !profile) {
+            return { complete: false, role: null as null | string };
+        }
+
+        const complete = Boolean(profile.full_name && profile.role && profile.phone);
+        return { complete, role: profile.role as string };
     };
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-
         try {
-            const { data, error } = await supabase.auth.signInWithPassword({
-                email,
-                password,
-            });
-
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
             if (error) {
                 if (error.message.includes('Email not confirmed')) {
                     alert('Please check your email and click the verification link before signing in.');
@@ -41,25 +42,28 @@ export default function Login() {
                     console.log(error.message);
                     alert('Login failed: ' + error.message);
                 }
-            } else {
-                console.log('Logged in user:', data.user);
-
-                // Check if profile is complete
-                const isProfileComplete = await checkProfileCompleteness(data.user.id);
-
-                if (!isProfileComplete) {
-                    navigate('/profile'); // First time - complete profile
-                } else {
-                    navigate('/owner/dashboard'); // Already has profile - go to dashboard
-                }
+                return;
             }
-        } catch (error) {
-            console.error('Login error:', error);
+
+            const { complete, role } = await checkProfileCompleteness(data.user.id);
+            setRole(role ?? ''); // optional, if you still need it in UI later
+            console.log('resolved role:', role);
+
+            if (!complete) {
+                navigate('/profile');
+            } else if (role === 'owner') {
+                navigate('/owner/dashboard');
+            } else if (role === 'walker') {
+                navigate('/walker/dashboard');
+            }
+        } catch (err) {
+            console.error('Login error:', err);
             alert('An unexpected error occurred. Please try again.');
         } finally {
             setLoading(false);
         }
     };
+
 
     (window as any).handleSignInWithGoogle = async () => {
         const { data, error } = await supabase.auth.signInWithOAuth({
