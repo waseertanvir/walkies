@@ -76,8 +76,11 @@ export default function RequestWalk() {
                         type="checkbox"
                         id="durationCheckBox"
                         name="durationCheckBox"
+                        /* 
+                        The following line is broken and needs to be fixed before deploying this to vercel.
+                        Otherwise, a compile time error will be thrown.
                         checked={durationHours}
-                        onChange={(e) => setDurationHours(e.target.checked)}
+                        onChange={(e) => setDurationHours(e.target.checked)} */
                         className="h-4 w-4 text-worange focus:ring-worange border-gray-300 rounded"
                     />
                 </div>
