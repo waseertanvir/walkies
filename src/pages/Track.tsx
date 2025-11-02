@@ -5,6 +5,7 @@ import ProtectedRoute from '../auth/ProtectedRoute';
 import { useNavigate, useParams } from 'react-router';
 import OwnerMenu from '../components/ownerMenu';
 import WalkerMenu from '../components/walkerMenu';
+import { TrajectoryLine } from '../components/TrajectoryLine';
 
 type LatLng = { lat: number; lng: number };
 type Role = 'owner' | 'walker' | string;
@@ -76,6 +77,7 @@ export default function Track() {
   const [path, setPath] = useState<LatLng[]>([]);
   const [isWalking, setIsWalking] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const intervalRef = useRef<number | null>(null);
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const center = useMemo<LatLng>(() => myPosition ?? { lat: 49.24, lng: -123.05 }, [myPosition]);
@@ -195,21 +197,56 @@ export default function Track() {
     return within10m(ownerPos, walkerPos) && new Date() >= end;
   })();
 
-  //start button
   const startWalk = async () => {
     if (!session) return;
     await supabase.from('sessions').update({ status: 'in_progress' }).eq('id', session.id);
     setSession({ ...session, status: 'in_progress' });
     setIsWalking(true);
-    setPath([]);
+    startInterval();
   };
 
-  //endbutton
+  const startInterval = async () => {
+    if (intervalRef.current !== null) return;
+    intervalRef.current = window.setInterval(() => {
+      if (myPosition != null) {
+        console.log("Latitide: " + myPosition.lat + ", Longitude: " + myPosition.lng);
+
+        addPath(myPosition);
+
+        /**
+         * This whole function call can be replaced via a POST REST call.
+         */
+        supabase
+          .from('session_detail')
+          .insert({ session_id: sessionId, lat: myPosition.lat, long: myPosition.lng })
+          .then(({ data, error }) => {
+            if (error) {
+              console.error("Insert failed:", error);
+            } else {
+              console.log("Insert succeeded:", data);
+            }
+          });
+      }
+    }, 2000);
+  };
+
+  const addPath = (point: LatLng) => {
+    setPath(prev => [...prev, point]);
+  };
+
+  const stopInterval = () => {
+    if (intervalRef.current !== null) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  };
+
   const endWalk = async () => {
     if (!session) return;
     await supabase.from('sessions').update({ status: 'completed' }).eq('id', session.id);
     setSession({ ...session, status: 'completed' });
     setIsWalking(false);
+    stopInterval();
   };
 
   if (!isLoaded)
@@ -230,16 +267,18 @@ export default function Track() {
         <div>Status: {session?.status}</div>
         <button
           onClick={startWalk}
-          disabled={!canStart}
-          className={`mt-2 px-3 py-1 rounded ${canStart ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-600'
+/*          The following buttons are temporarily enabled for testing. Please remove this comment before final testing. 
+            disabled={!canStart}
+ */          className={`mt-2 px-3 py-1 rounded ${true ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-600'
             }`}
         >
           Start Walk
         </button>
         <button
           onClick={endWalk}
+/*        The following buttons are temporarily enabled for testing. Please remove this comment before final testing.  
           disabled={!canEnd}
-          className={`mt-2 px-3 py-1 rounded ${canEnd ? 'bg-green-600 text-white' : 'bg-gray-300 text-gray-600'
+ */          className={`mt-2 px-3 py-1 rounded ${true ? 'bg-green-600 text-white' : 'bg-gray-300 text-gray-600'
             }`}
         >
           End Walk
@@ -272,6 +311,15 @@ export default function Track() {
               </AdvancedMarker>
             );
           })}
+
+          <TrajectoryLine
+            path={path}
+            options={{
+              strokeColor: "#ff6200ff",
+              strokeOpacity: 1.0,
+              strokeWeight: 3,
+            }}
+          />
 
           {myPosition && (
             <AdvancedMarker position={myPosition}>
