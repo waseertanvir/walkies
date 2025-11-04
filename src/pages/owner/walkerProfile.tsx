@@ -15,9 +15,9 @@ export default function WalkerProfile() {
     return <div>User not found</div>;
   }
 
-  if (showRequestWalkPage) {
-    return <RequestWalk />;
-  }
+  // if (showRequestWalkPage) {
+  //   return <RequestWalk />;
+  // }
 
   return (
     <div className="walker-profile">
@@ -62,11 +62,12 @@ export default function WalkerProfile() {
           <button className="back-btn" onClick={() => navigate('/owner/dashboard', { state: { selectedUser: user } })}>
             Back
           </button>
-          <button className="back-btn" onClick={() => setShowRequestWalkPage(true)}>
+          {/* <button className="back-btn" onClick={() => setShowRequestWalkPage(true)}> */}
+          <button className="back-btn" onClick={() => navigate(`/owner/schedule/${user.id}`)}>
             Request Walk
           </button>
+        </div>
       </div>
-    </div>
     </div >
   );
 }

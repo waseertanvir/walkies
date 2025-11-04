@@ -81,7 +81,7 @@ const router = createBrowserRouter([
     Component: Broadcast
   },
   {
-    path: "/owner/schedule",
+    path: "/owner/schedule/:walkerID?",
     Component: ScheduleWalk
   },
   {
