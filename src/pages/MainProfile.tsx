@@ -9,6 +9,18 @@ export default function MainProfile() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const [formData, setFormData] = useState({
+    full_name: '',
+    phone: '',
+    email: '',
+    role: '',
+    bio: '',
+    years_experience: 0,
+  });
+
+  const [canChangeRole, setCanChangeRole] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -22,12 +34,72 @@ export default function MainProfile() {
         .single();
 
       if (error) console.error(error);
-      setProfile(data);
+      else {
+        setProfile(data);
+        setFormData({
+          full_name: data.full_name || '',
+          phone: data.phone || '',
+          email: data.email || user.email || '',
+          role: data.role || '',
+          bio: data.bio || '',
+          years_experience: data.years_experience || 0,
+        });
+        setCanChangeRole(!data.role || data.role === '');
+      }
+
       setLoading(false);
     };
 
     fetchProfile();
   }, []);
+
+  const handleSave = async () => {
+    if (canChangeRole && !formData.role) {
+      alert("Please select a role");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const updates: any = {
+        id: user.id,
+        email: user.email,
+        full_name: formData.full_name,
+        phone: formData.phone,
+        bio: formData.bio || null,
+        years_experience: formData.years_experience || null,
+      };
+
+      if (canChangeRole) {
+        updates.role = formData.role;
+      }
+
+      const { error } = await supabase
+        .from('profiles')
+        .upsert(updates);
+
+      if (error) {
+        alert("Error saving profile: " + error.message);
+      } else {
+        alert("Profile saved successfully!");
+        setCanChangeRole(false);
+        setProfile({ ...profile, ...updates });
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Unexpected error saving profile");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    navigate('/login');
+  };
 
   if (loading) return (
     <ProtectedRoute>
@@ -43,13 +115,9 @@ export default function MainProfile() {
         <div className="top-4 left-4 z-50">
           <button
             onClick={() => {
-              if (profile?.role === 'walker') {
-                navigate('/walker/dashboard');
-              } else if (profile?.role === 'owner') {
-                navigate('/owner/dashboard');
-              } else {
-                navigate('/');
-              }
+              if (profile?.role === 'walker') navigate('/walker/dashboard');
+              else if (profile?.role === 'owner') navigate('/owner/dashboard');
+              else navigate('/');
             }}
             className="bg-wolive text-black p-2 rounded-full shadow-lg hover:bg-green-600 transition-colors"
           >
@@ -68,66 +136,102 @@ export default function MainProfile() {
 
           <div className='grid mb-6'>
             <Card className="bg-[#D9D9D9] p-4 w-full">
-              <h2 className="font-semibold text-xs text-gray-600 mb-2">
-                Full Name
-              </h2>
-              <input className="w-full font-semibold" type="text" value={profile?.full_name ?? '—'} />
+              <h2 className="font-semibold text-xs text-gray-600 mb-2">Full Name</h2>
+              <input
+                className="w-full font-semibold"
+                type="text"
+                value={formData.full_name}
+                onChange={(e) => setFormData(prev => ({ ...prev, full_name: e.target.value }))}
+              />
             </Card>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <Card className="bg-[#D9D9D9] p-4">
-              <h2 className="font-semibold text-xs text-gray-600 mb-2">
-                Gender
-              </h2>
-              <input className="w-full font-semibold" type="text" value={profile?.email || '—'} />
+              <h2 className="font-semibold text-xs text-gray-600 mb-2">Phone</h2>
+              <input
+                className="w-full font-semibold"
+                type="text"
+                value={formData.phone}
+                onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+              />
             </Card>
 
             <Card className="bg-[#D9D9D9] p-4">
-              <h2 className="font-semibold text-xs text-gray-600 mb-2">
-                Birthday
-              </h2>
-              <input className="w-full font-semibold" type="text" value="01-01-2001" />
+              <h2 className="font-semibold text-xs text-gray-600 mb-2">Email</h2>
+              <input
+                className="w-full font-semibold"
+                type="email"
+                value={formData.email}
+                disabled
+              />
             </Card>
-
           </div>
 
           <div className='grid mb-6 w-full'>
-            <Card className="bg-[#D9D9D9] p-4 mb-6">
-              <h2 className="font-semibold text-xs text-gray-600 mb-2">
-                Phone Number
-              </h2>
-              <input className="font-semibold" type="text" value="(+1) 123-456-8974" />
-            </Card>
+            {canChangeRole ? (
+              <Card className="bg-[#D9D9D9] p-4 mb-6">
+                <h2 className="font-semibold text-xs text-gray-600 mb-2">Role</h2>
+                <select
+                  value={formData.role}
+                  onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-wblue"
+                >
+                  <option value="">Select your role</option>
+                  <option value="owner">Pet Owner</option>
+                  <option value="walker">Dog Walker</option>
+                </select>
+              </Card>
+            ) : (
+              <Card className="bg-[#D9D9D9] p-4 mb-6">
+                <h2 className="font-semibold text-xs text-gray-600 mb-2">Role</h2>
+                <div className="px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 capitalize">
+                  {formData.role}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Role cannot be changed once set</p>
+              </Card>
+            )}
 
-            <Card className="bg-[#D9D9D9] p-4 mb-6">
-              <h2 className="font-semibold text-xs text-gray-600 mb-2">
-                Email
-              </h2>
-              <input className="font-semibold" type="text" value="helloworld@gmail.com" />
-            </Card>
-            
-            <Card className="bg-[#D9D9D9] p-4 mb-6">
-              <h2 className="font-semibold text-xs text-gray-600 mb-2">
-                Edit Description
-              </h2>
-              <input className="font-semibold" type="text" value="Lorem ipsum" />
-            </Card>
+            {formData.role === 'walker' && (
+              <>
+                <Card className="bg-[#D9D9D9] p-4 mb-6">
+                  <h2 className="font-semibold text-xs text-gray-600 mb-2">Years of Experience</h2>
+                  <input
+                    type="number"
+                    min="0"
+                    value={formData.years_experience}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      years_experience: parseInt(e.target.value) || 0
+                    }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-wblue"
+                  />
+                </Card>
+
+                <Card className="bg-[#D9D9D9] p-4 mb-6">
+                  <h2 className="font-semibold text-xs text-gray-600 mb-2">Bio</h2>
+                  <textarea
+                    value={formData.bio}
+                    onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-wblue"
+                    rows={4}
+                  />
+                </Card>
+              </>
+            )}
           </div>
 
           <div className="grid justify-center">
             {profile?.role === 'owner' && (
-              <Button className='mb-6'
-                onClick={() => navigate('/view-dogs')}
-              >
+              <Button className='mb-6' onClick={() => navigate('/view-dogs')}>
                 Edit Dogs
               </Button>
             )}
-
-            <Button
-              onClick={() => navigate('/profile', { state: { cameFromUserProfile: true } })}
-            >
-              Save
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? 'Saving...' : 'Save'}
+            </Button>
+            <Button variant="danger" className="mt-2" onClick={handleSignOut}>
+              Sign Out
             </Button>
           </div>
         </div>
