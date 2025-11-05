@@ -1,9 +1,10 @@
-import { useLocation, useNavigate } from 'react-router';
+import { useLocation, useNavigate, useParams } from 'react-router';
 import '../App.css'
 import { ArrowLeft, X } from "lucide-react";
-import { useState, useRef, useEffect} from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { APIProvider, Map, AdvancedMarker, useMapsLibrary } from '@vis.gl/react-google-maps';
 import { useDeviceState } from "../../DeviceStateContext";
+import { supabase } from '../../supabaseClient';
 
 export default function ScheduleWalk() {
     return (
@@ -14,19 +15,31 @@ export default function ScheduleWalk() {
 }
 
 function ScheduleWalkContent() {
+    const { walkerID } = useParams();
     const location = useLocation();
     const navigate = useNavigate();
-    const [selectDog, setSelectDog] = useState("");
+    const [requestType, setRequestType] = useState("");
+
+    const [dogs, setDogs] = useState<any[]>([]);
+    const [selectedDogId, setSelectedDogId] = useState<string>("");
+
     const [selectActivity, setSelectActivity] = useState("");
     const [durationHours, setDurationHours] = useState("");
+    const [dateTime, setDateTime] = useState(Date);
+    const compensation = "30"
+    const [instructions, setInstructions] = useState("");
+
     const [pickupAddress, setPickupAddress] = useState("");
     const [dropoffAddress, setDropoffAddress] = useState("");
-    const [pickupLocation, setPickupLocation] = useState<{ lat : number ; lng : number} | null>(null);
-    const [dropoffLocation, setDropoffLocation] = useState<{ lat : number ; lng : number} | null>(null);
+    const [pickupLocation, setPickupLocation] = useState<{ lat: number; lng: number } | null>(null);
+    const [dropoffLocation, setDropoffLocation] = useState<{ lat: number; lng: number } | null>(null);
+
     const [myPosition, setMyPosition] = useState<{ lat: number; lng: number } | null>(null);
     const center = myPosition ?? { lat: 49.24, lng: -123.05 };
     const [mapCenter, setMapCenter] = useState(center);
+
     const { setState } = useDeviceState();
+    const [submitting, setSubmitting] = useState(false);
 
     const places = useMapsLibrary('places');
     const pickupInputRef = useRef(null);
@@ -34,135 +47,231 @@ function ScheduleWalkContent() {
 
     useEffect(() => {
         console.log('useEffect running!');
-        if (!places || !pickupInputRef.current || !dropoffInputRef.current) return;
+        if (!places) return;
 
-        const pickupAutocomplete = new places.Autocomplete(pickupInputRef.current, {
-            fields: ['geometry', 'formatted_address']
-        });
-        
-        pickupAutocomplete.addListener('place_changed', () => {
-            const place = pickupAutocomplete.getPlace();
-            if (place.geometry?.location) {
-                setPickupLocation({
-                    lat: place.geometry.location.lat(),
-                    lng: place.geometry.location.lng()
-                });
-                setPickupAddress(place.formatted_address || place.name || "");  
-            }
-        });
+        if (pickupInputRef.current) {
+            const pickupAutocomplete = new places.Autocomplete(pickupInputRef.current, {
+                fields: ['geometry', 'formatted_address']
+            });
 
-        const dropoffAutocomplete = new places.Autocomplete(dropoffInputRef.current, {
-            fields: ['geometry', 'formatted_address']
-        });
-        
-        dropoffAutocomplete.addListener('place_changed', () => {
-            const place = dropoffAutocomplete.getPlace();
-            if (place.geometry?.location) {
-                setDropoffLocation({
-                    lat: place.geometry.location.lat(),
-                    lng: place.geometry.location.lng()
-                });
-                setDropoffAddress(place.formatted_address || place.name || "");  
-            }
-        }); 
+            pickupAutocomplete.addListener('place_changed', () => {
+                const place = pickupAutocomplete.getPlace();
+                if (place.geometry?.location) {
+                    setPickupLocation({
+                        lat: place.geometry.location.lat(),
+                        lng: place.geometry.location.lng()
+                    });
+                    setPickupAddress(place.formatted_address || place.name || "");
+                }
+            });
+        }
+
+        if (dropoffInputRef.current) {
+            const dropoffAutocomplete = new places.Autocomplete(dropoffInputRef.current, {
+                fields: ['geometry', 'formatted_address']
+            });
+
+            dropoffAutocomplete.addListener('place_changed', () => {
+                const place = dropoffAutocomplete.getPlace();
+                if (place.geometry?.location) {
+                    setDropoffLocation({
+                        lat: place.geometry.location.lat(),
+                        lng: place.geometry.location.lng()
+                    });
+                    setDropoffAddress(place.formatted_address || place.name || "");
+                }
+            });
+        }
     }, [places]);
+
+    useEffect(() => {
+        // get list of dogs
+        const getDogs = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            const { data, error } = await supabase
+                .from('pets')
+                .select('*')
+                .eq('owner_id', user?.id)
+            if (error) {
+                console.error('Error fetching dogs:', error);
+                return;
+            } else {
+                setDogs(data ?? []);
+                if ((data?.length ?? 0) === 1) setSelectedDogId(data![0].id);
+            }
+        }
+        getDogs()
+
+        // get request type
+        const getType = async () => {
+            if (!walkerID) {
+                setDateTime(Date());
+                setPickupLocation(myPosition)
+                setRequestType("broadcast")
+            } else {
+                setRequestType("select")
+            }
+        }
+        getType();
+    }, [])
+
+    const sendRequest = async (): Promise<boolean> => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return false;
+
+        const startIso =
+            dateTime
+                ? new Date(dateTime).toISOString()
+                : new Date().toISOString();
+
+        const { error } = await supabase.from('sessions').insert({
+            owner_id: user.id,
+            walker_id: walkerID,
+            pet_id: selectedDogId || null,
+            status: 'pending',
+            start_time: startIso,
+            duration_minutes: durationHours ? Math.round(parseFloat(durationHours) * 60) : null,
+            compensation: Number(compensation),
+            activity: selectActivity || null,
+            meeting_location: pickupLocation,
+            dropoff_location: dropoffLocation,
+            special_instructions: instructions || null
+        });
+
+        if (error) {
+            console.error('Error creating request:', error);
+            alert('Error creating request: ' + error.message);
+            return false;
+        }
+        return true;
+    };
+
+
+    const handleBroadcast = async () => {
+        try {
+            setSubmitting(true);
+            setState("BROADCAST");
+            const response = await sendRequest();
+            if (response) navigate(-1);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleSelect = async () => {
+        try {
+            setSubmitting(true);
+            const response = await sendRequest();
+            if (response) navigate('/owner/dashboard/');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
 
     return (
         <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}>
-        <div>
-            <button
-                className="bg-wolive text-black p-2 m-5 w-11.5 rounded-full"
-                onClick={() => navigate(-1)}>
-                <ArrowLeft size={30} />
-            </button>
+            <div>
+                <button
+                    className="bg-wolive text-black p-2 m-5 w-11.5 rounded-full"
+                    onClick={() => navigate(-1)}>
+                    <ArrowLeft size={30} />
+                </button>
 
-            <div className='flex items-center m-5'>
-                <select
-                    id="options"
-                    className='p-1 rounded-md bg-white border border-gray-300 w-full'
-                    value={selectDog}
-                    onChange={(e) => setSelectDog(e.target.value)}  >
-                    <option value="">Select your dog</option>
-                    <option value="apple">Rottweiler</option>
-                    <option value="banana">German Shepherd</option>
-                    <option value="cherry">Pitbull</option>
-                </select>
-            </div>
-
-            <div className='flex items-center m-5'>
-                <select
-                    id="options"
-                    className='p-1 rounded-md bg-white border border-gray-300 w-full'
-                    value={selectActivity}
-                    onChange={(e) => setSelectActivity(e.target.value)}>
-                    <option value="">Select the activity</option>
-                    <option value="apple">Pet Sitting</option>
-                    <option value="banana">Walking</option>
-                    <option value="cherry">Running</option>
-                </select>
-            </div>
-
-            <div
-                className="flex justify-between items-center m-5 p-1 rounded-md bg-white border border-gray-300">
-                <label htmlFor="duration">Enter duration:</label>
-                <input
-                    type="number"
-                    id="duration"
-                    name="duration"
-                    min="0"
-                    step="0.5"
-                    placeholder="e.g. 2.5"
-                    defaultValue={durationHours}
-                    onChange={(e) => setDurationHours(e.target.value)}
-                />
-            </div>
-
-            <div className='flex items-center m-5 p-[5px] rounded-md bg-white border border-[#ccc]'>
-                <input
-                    type="text"
-                    id="date"
-                    placeholder="Date"
-                    value={new Date().toString()}
-                    readOnly 
-                />
-            </div>
-            
-                <div className="m-5 p-1 grid rounded-md bg-white border border-gray-300 h-auto">
-                    <label className="m-2">
-                        Pickup Location:
-                    </label>
-
-                    <input
-                        ref={pickupInputRef}
-                        type="text"
-                        placeholder="Address"
-                        value={pickupAddress}
-                        className='m-2 border border-gray-300 rounded-md p-2'
-                        onChange={(e) => setPickupAddress(e.target.value)}
-                    />
-
-                    <div className='m-2 h-50'>
-                        <Map
-                            mapId={import.meta.env.VITE_GOOGLE_MAP_ID}
-                            center={pickupLocation || mapCenter}
-                            defaultZoom={15}
-                            disableDefaultUI={true}
-                            clickableIcons={false} >
-                            {pickupLocation && (
-                                <AdvancedMarker
-                                    position={pickupLocation}
-                                    onClick={() => console.log('clicked my position: ', pickupLocation)}
-                                >
-                                    <div
-                                        className='w-[20px] h-[20px] rounded-full bg-[#FE7F2D] border-3 border-white'
-                                    />
-                                </AdvancedMarker>
-                            )}
-                        </Map>
-                    </div>
+                <div className='flex items-center m-5'>
+                    <select
+                        id="dogs"
+                        className='p-1 rounded-md bg-white border border-gray-300 w-full'
+                        value={selectedDogId}
+                        onChange={(e) => setSelectedDogId(e.target.value)}
+                    >
+                        <option value="">Select your dog</option>
+                        {dogs.map((d) => (
+                            <option key={d.id} value={d.id}>
+                                {d.name}{d.breed ? ` • ${d.breed}` : ""}
+                            </option>
+                        ))}
+                    </select>
                 </div>
 
-                
+                <div className='flex items-center m-5'>
+                    <select
+                        id="activities"
+                        className='p-1 rounded-md bg-white border border-gray-300 w-full'
+                        value={selectActivity}
+                        onChange={(e) => setSelectActivity(e.target.value)}>
+                        <option value="">Select the activity</option>
+                        <option value="walking">Walking</option>
+                        <option value="running">Running</option>
+                        <option value="fetch">Fetch</option>
+                        <option value="hiking">Hiking</option>
+                    </select>
+                </div>
+
+                <div
+                    className="flex justify-between items-center m-5 p-1 rounded-md bg-white border border-gray-300">
+                    <label htmlFor="duration">Enter duration:</label>
+                    <input
+                        type="number"
+                        id="duration"
+                        name="duration"
+                        min="0"
+                        step="0.5"
+                        placeholder="e.g. 2.5"
+                        defaultValue={durationHours}
+                        onChange={(e) => setDurationHours(e.target.value)}
+                    />
+                </div>
+                {requestType == "select" && (
+                    <div className="flex items-center m-5 p-[5px] rounded-md bg-white border border-[#ccc]">
+                        <input
+                            type="datetime-local"
+                            id="date"
+                            value={dateTime}
+                            onChange={(e) => setDateTime(e.target.value)}
+                            className="p-2 w-full rounded-md border border-gray-300"
+                        />
+                    </div>
+                )}
+
+                {requestType == "select" && (
+                    <div className="m-5 p-1 grid rounded-md bg-white border border-gray-300 h-auto">
+                        <label className="m-2">
+                            Pickup Location:
+                        </label>
+
+                        <input
+                            ref={pickupInputRef}
+                            type="text"
+                            placeholder="Address"
+                            value={pickupAddress}
+                            className='m-2 border border-gray-300 rounded-md p-2'
+                            onChange={(e) => setPickupAddress(e.target.value)}
+                        />
+
+                        <div className='m-2 h-50'>
+                            <Map
+                                mapId={import.meta.env.VITE_GOOGLE_MAP_ID}
+                                center={pickupLocation || mapCenter}
+                                defaultZoom={15}
+                                disableDefaultUI={true}
+                                clickableIcons={false} >
+                                {pickupLocation && (
+                                    <AdvancedMarker
+                                        position={pickupLocation}
+                                        onClick={() => console.log('clicked my position: ', pickupLocation)}
+                                    >
+                                        <div
+                                            className='w-5 h-5 rounded-full bg-worange border-3 border-white'
+                                        />
+                                    </AdvancedMarker>
+                                )}
+                            </Map>
+                        </div>
+                    </div>
+                )}
+
+
                 <div className="m-5 p-1 grid rounded-md bg-white border border-gray-300 h-auto">
                     <label className="m-2">
                         Dropoff Location:
@@ -190,23 +299,48 @@ function ScheduleWalkContent() {
                                     onClick={() => console.log('clicked my position: ', dropoffLocation)}
                                 >
                                     <div
-                                        className='w-[20px] h-[20px] rounded-full bg-[#FE7F2D] border-3 border-white'
+                                        className='w-5 h-5 rounded-full bg-worange border-3 border-white'
                                     />
                                 </AdvancedMarker>
                             )}
                         </Map>
                     </div>
                 </div>
-            <div className="flex justify-center w-full">
-                <button className="p-4 rounded-3xl bg-worange"
-                    onClick={() => {
-                        setState("BROADCAST");
-                        navigate(-1);
-                    }}>
-                    Schedule
-                </button>
+
+                <div className="flex flex-col m-5 p-[5px] rounded-md bg-white border border-[#ccc]">
+                    <label htmlFor="instructions" className="mb-1 text-gray-700">
+                        Special Instructions:
+                    </label>
+                    <textarea
+                        id="instructions"
+                        placeholder="Add any notes or special instructions for the walk"
+                        value={instructions}
+                        onChange={(e) => setInstructions(e.target.value)}
+                        className="p-2 border border-gray-300 rounded-md resize-none h-24"
+                    />
+                </div>
+
+                <div className="flex justify-center w-full">
+                    {requestType === 'broadcast' && (
+                        <button
+                            className="p-4 rounded-3xl bg-worange disabled:opacity-50"
+                            onClick={handleBroadcast}
+                            disabled={submitting}
+                        >
+                            {submitting ? 'Sending...' : 'Broadcast'}
+                        </button>
+                    )}
+                    {requestType === 'select' && (
+                        <button
+                            className="p-4 rounded-3xl bg-worange disabled:opacity-50"
+                            onClick={handleSelect}
+                            disabled={submitting}
+                        >
+                            {submitting ? 'Requesting...' : 'Request'}
+                        </button>
+                    )}
+                </div>
             </div>
-        </div>
         </APIProvider>
     );
 }

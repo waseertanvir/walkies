@@ -4,6 +4,7 @@ import { supabase } from '../supabaseClient';
 import ProtectedRoute from '../auth/ProtectedRoute';
 import { Card, Button } from '../components/ui';
 import { ChevronLeft } from 'lucide-react';
+import { useLocation } from "react-router-dom";
 
 interface Pet {
   id: string;
@@ -12,7 +13,11 @@ interface Pet {
   description: string;
 }
 
-export default function CreateRequest() {
+type CreateRequestFormProps = {
+  onSubmit: () => void;
+};
+
+export default function CreateRequest({ onSubmit }: CreateRequestFormProps) {
   const navigate = useNavigate();
   const [pets, setPets] = useState<Pet[]>([]);
   const [selectedPet, setSelectedPet] = useState<string>('');
@@ -24,7 +29,14 @@ export default function CreateRequest() {
     meeting_location: '',
     special_instructions: ''
   });
+
   const [loading, setLoading] = useState(false);
+  const { state } = useLocation();
+
+  /**
+  * TODO: Replace this with a dynamically fetched walker id.
+  */
+  const walkerId = 'e57ddeb5-bb07-4c29-8130-5864ae733606'
 
   useEffect(() => {
     const fetchPets = async () => {
@@ -51,24 +63,47 @@ export default function CreateRequest() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { error } = await supabase
-        .from('sessions')
-        .insert({
-          owner_id: user.id,
-          pet_id: selectedPet,
-          status: 'pending',
-          start_time: formData.start_time,
-          duration_minutes: formData.duration_minutes,
-          compensation: formData.compensation,
-          notes: formData.notes,
-          meeting_location: formData.meeting_location,
-          special_instructions: formData.special_instructions
-        });
+      if (walkerId != null) {
+        const { error } = await supabase
+          .from('sessions')
+          .insert({
+            owner_id: user.id,
+            pet_id: selectedPet,
+            status: 'pending',
+            walker_id: walkerId,
+            start_time: formData.start_time,
+            duration_minutes: formData.duration_minutes,
+            compensation: formData.compensation,
+            notes: formData.notes,
+            meeting_location: formData.meeting_location,
+            special_instructions: formData.special_instructions
+          });
 
-      if (error) {
-        console.error('Error creating request:', error);
-        alert('Error creating request: ' + error.message);
-        return;
+        if (error) {
+          console.error('Error creating request:', error);
+          alert('Error creating request: ' + error.message);
+          return;
+        }
+      } else {
+        const { error } = await supabase
+          .from('sessions')
+          .insert({
+            owner_id: user.id,
+            pet_id: selectedPet,
+            status: 'pending',
+            start_time: formData.start_time,
+            duration_minutes: formData.duration_minutes,
+            compensation: formData.compensation,
+            notes: formData.notes,
+            meeting_location: formData.meeting_location,
+            special_instructions: formData.special_instructions
+          });
+
+        if (error) {
+          console.error('Error creating request:', error);
+          alert('Error creating request: ' + error.message);
+          return;
+        }
       }
 
       alert('Request created successfully!');
