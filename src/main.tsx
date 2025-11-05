@@ -22,6 +22,7 @@ import CompletedWalks from './pages/walker/CompletedWalks.tsx'
 import Broadcast from './pages/owner/BroadcastWalk.tsx'
 import ScheduleWalk from './pages/owner/ScheduleWalk.tsx'
 import DeviceStateContext from './DeviceStateContext.tsx'
+import { BrowserRouter } from "react-router-dom";
 
 const router = createBrowserRouter([
   {
@@ -102,7 +103,9 @@ const router = createBrowserRouter([
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <DeviceStateContext>
-      <RouterProvider router={router} />
+        <BrowserRouter>
+          <RouterProvider router={router} />
+        </BrowserRouter>
     </DeviceStateContext>
   </StrictMode>,
 )
