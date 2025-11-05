@@ -2,8 +2,10 @@ import { useLocation, useNavigate } from 'react-router';
 import profileBanner from '../../assets/profile_banner.png';
 import { Star, BadgeCheck } from "lucide-react";
 import '../App.css'
-import RequestWalk from "./RequestWalk";
+import CreateRequest from "../../../src/pages/CreateRequest";
 import { useState } from "react";
+import { useParams } from "react-router-dom";
+import { useDeviceState } from "../../DeviceStateContext";
 
 export default function WalkerProfile() {
   const location = useLocation();
@@ -15,9 +17,16 @@ export default function WalkerProfile() {
     return <div>User not found</div>;
   }
 
-  // if (showRequestWalkPage) {
-  //   return <RequestWalk />;
-  // }
+  if (showRequestWalkPage) {
+    navigate("/requests/new", { state: { } });
+  }
+
+  const { setState } = useDeviceState();
+
+  const handleSubmitX = () => {
+    setState('WAITING_TO_ACCEPT');
+    navigate("/owner/dashboard");
+  };
 
   return (
     <div className="walker-profile">
