@@ -6,12 +6,12 @@ type DeviceContextType = {
 };
 
 const DeviceStateContext = createContext<DeviceContextType>({
-  state: "IDLE",
+  state: "WAITING_FOR_WALKER",
   setState: () => {},
 });
 
 export default function DeviceStateProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState("IDLE");
+  const [state, setState] = useState("WAITING_FOR_WALKER");
 
   return (
     <DeviceStateContext.Provider value={{ state, setState }}>
