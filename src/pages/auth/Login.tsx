@@ -50,7 +50,7 @@ export default function Login() {
             console.log('resolved role:', role);
 
             if (!complete) {
-                navigate('/profile');
+                navigate('/userprofile');
             } else if (role === 'owner') {
                 navigate('/owner/dashboard');
             } else if (role === 'walker') {
