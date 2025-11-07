@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { supabase } from '../supabaseClient';
 import ProtectedRoute from '../auth/ProtectedRoute';
@@ -10,6 +10,8 @@ export default function MainProfile() {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
     full_name: '',
@@ -20,6 +22,7 @@ export default function MainProfile() {
     years_experience: 0,
   });
 
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [canChangeRole, setCanChangeRole] = useState(false);
 
   useEffect(() => {
@@ -44,6 +47,7 @@ export default function MainProfile() {
           bio: data.bio || '',
           years_experience: data.years_experience || 0,
         });
+        setAvatarUrl(data.avatar_url || null);
         setCanChangeRole(!data.role || data.role === '');
       }
 
@@ -71,6 +75,7 @@ export default function MainProfile() {
         phone: formData.phone,
         bio: formData.bio || null,
         years_experience: formData.years_experience || null,
+        avatar_url: avatarUrl,
       };
 
       if (canChangeRole) {
@@ -93,6 +98,53 @@ export default function MainProfile() {
       alert("Unexpected error saving profile");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      setUploading(true);
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}.${fileExt}`;
+      const filePath = `/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('profile-pictures')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from('profile-pictures')
+        .getPublicUrl(filePath);
+
+      const publicUrl = data.publicUrl;
+
+      const { error: dbError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', user.id);
+
+      if (dbError) throw dbError;
+
+      setAvatarUrl(publicUrl);
+      alert('Image uploaded successfully!');
+    } catch (error: any) {
+      console.error(error);
+      alert('Error uploading image: ' + error.message);
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -126,12 +178,27 @@ export default function MainProfile() {
         </div>
 
         <div className="max-w-3xl mx-auto mt-16">
-          <h1 className="text-3xl font-bold text-black mb-6 text-center">Profile</h1>
+          <h1 className="text-3xl font-bold text-white mb-6 text-center">{profile.full_name}</h1>
 
-          <div className="flex justify-center mb-8">
-            <div className="w-32 h-32 rounded-full bg-gray-300 border-4 border-white flex items-center justify-center shadow-lg">
-              <span className="text-white text-xl">No Image</span>
+          <div className="flex flex-col items-center mb-8">
+            <div className="w-32 h-32 rounded-full bg-gray-300 border-4 border-white flex items-center justify-center shadow-lg overflow-hidden">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-white text-xl">No Image</span>
+              )}
             </div>
+
+            <input
+              type="file"
+              accept="image/*"
+              ref={fileInputRef}
+              className="hidden"
+              onChange={handleFileChange}
+            />
+            <Button onClick={handleUploadClick} disabled={uploading} className="mt-4">
+              {uploading ? 'Uploading...' : 'Upload Image'}
+            </Button>
           </div>
 
           <div className='grid mb-6'>
