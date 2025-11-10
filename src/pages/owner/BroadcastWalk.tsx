@@ -1,134 +1,215 @@
 import { useLocation, useNavigate } from 'react-router';
 import '../App.css'
 import { ArrowLeft, X } from "lucide-react";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { APIProvider, Map, Marker, AdvancedMarker } from '@vis.gl/react-google-maps';
 import { useDeviceState } from "../../DeviceStateContext";
+import { supabase } from '../../supabaseClient';
+import { Card, Button } from '../../components/ui';
+import { ChevronLeft } from 'lucide-react';
+
+interface Pet {
+    id: string;
+    name: string;
+    breed: string;
+    description: string;
+}
 
 export default function RequestWalk() {
     const location = useLocation();
     const navigate = useNavigate();
-    const [selectDog, setSelectDog] = useState("");
+    const [pets, setPets] = useState<Pet[]>([]);
     const [selectActivity, setSelectActivity] = useState("");
     const [durationHours, setDurationHours] = useState("");
     const [myPosition, setMyPosition] = useState<{ lat: number; lng: number } | null>(null);
     const center = myPosition ?? { lat: 49.24, lng: -123.05 };
     const [mapCenter, setMapCenter] = useState(center);
     const { setState } = useDeviceState();
+    const [selectedPet, setSelectedPet] = useState<string>('');
+    const [loading, setLoading] = useState(false);
+    const [formData, setFormData] = useState({
+        duration_minutes: 30,
+        compensation: 0,
+        notes: '',
+        meeting_location: '',
+        special_instructions: ''
+    });
+
+    useEffect(() => {
+        const fetchPets = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            const { data } = await supabase
+                .from('pets')
+                .select('*')
+                .eq('owner_id', user.id);
+
+            setPets(data || []);
+        };
+
+        fetchPets();
+    }, []);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedPet) return;
+
+        setLoading(true);
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            const now = new Date(Date.now());
+            const formattedDate = now.toISOString().slice(0, 16);
+
+            const { error } = await supabase
+                .from('sessions')
+                .insert({
+                    owner_id: user.id,
+                    pet_id: selectedPet,
+                    status: 'pending',
+                    start_time: formattedDate,
+                    duration_minutes: formData.duration_minutes,
+                    compensation: formData.compensation,
+                    notes: formData.notes,
+                    meeting_location: formData.meeting_location,
+                    special_instructions: formData.special_instructions
+                });
+
+            if (error) {
+                console.error('Error creating request:', error);
+                alert('Error creating request: ' + error.message);
+                return;
+            }
+
+            alert('Request created successfully!');
+            navigate('/');
+        } catch (error) {
+            console.error('Unexpected error:', error);
+            alert('Unexpected error creating request');
+        } finally {
+            setLoading(false);
+        }
+    };
+
 
     return (
-        <div>
-            <button
-                className="bg-wolive text-black p-2 m-5 w-11.5 rounded-full"
-                onClick={() => navigate(-1)}>
-                <ArrowLeft size={30} />
-            </button>
-
-            <div className='flex items-center m-5'>
-                <select
-                    id="options"
-                    className='p-1 rounded-md bg-white border border-gray-300 w-full'
-                    value={selectDog}
-                    onChange={(e) => setSelectDog(e.target.value)}  >
-                    <option value="">Select your dog</option>
-                    <option value="apple">Rottweiler</option>
-                    <option value="banana">German Shepherd</option>
-                    <option value="cherry">Pitbull</option>
-                </select>
-            </div>
-
-            <div className='flex items-center m-5'>
-                <select
-                    id="options"
-                    className='p-1 rounded-md bg-white border border-gray-300 w-full'
-                    value={selectActivity}
-                    onChange={(e) => setSelectActivity(e.target.value)}>
-                    <option value="">Select the activity</option>
-                    <option value="apple">Pet Sitting</option>
-                    <option value="banana">Walking</option>
-                    <option value="cherry">Running</option>
-                </select>
-            </div>
-
-            <div
-                className="flex justify-between items-center m-5 p-1 rounded-md bg-white border border-gray-300">
-                <label htmlFor="duration">Enter duration:</label>
-                <input
-                    type="number"
-                    id="duration"
-                    name="duration"
-                    min="0"
-                    step="0.5"
-                    placeholder="e.g. 2.5"
-                    value={durationHours}
-                    onChange={(e) => setDurationHours(e.target.value)}
-                />
-            </div>
-            <div
-                className="grid m-5 gap-2 p-2 rounded-md bg-white border border-gray-300">
-                <label className="font-medium">Drop off location:</label>
-                <div className="flex items-center justify-between">
-                    <label htmlFor="durationCheckBox" className="mr-2">
-                        Current Location:
-                    </label>
-
-                    <input
-                        type="checkbox"
-                        id="durationCheckBox"
-                        name="durationCheckBox"
-                        /* 
-                        The following line is broken and needs to be fixed before deploying this to vercel.
-                        Otherwise, a compile time error will be thrown.
-                        checked={durationHours}
-                        onChange={(e) => setDurationHours(e.target.checked)} */
-                        className="h-4 w-4 text-worange focus:ring-worange border-gray-300 rounded"
-                    />
-                </div>
-            </div>
-
-            <div className='flex items-center m-5 p-[5px] rounded-md bg-white border border-[#ccc]'>
-                <input
-                    type="text"
-                    id="address"
-                    min="0"
-                    step="0.5"
-                    placeholder="Address"
-                    value={durationHours}
-                    onChange={(e) => setDurationHours(e.target.value)}
-                />
-            </div>
-
-            <div className="m-5 p-1 rounded-md bg-white border border-gray-300 h-40">
-                <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}>
-                    <Map
-                        mapId={import.meta.env.VITE_GOOGLE_MAP_ID}
-                        defaultCenter={mapCenter}
-                        defaultZoom={15}
-                        disableDefaultUI={true}
-                        clickableIcons={false} >
-                        {myPosition && (
-                            <AdvancedMarker
-                                position={myPosition}
-                                onClick={() => console.log('clicked my position: ', myPosition)}
-                            >
-                                <div
-                                    className='w-[20px] h-[20px] rounded-full bg-[#FE7F2D] border-3 border-white'
-                                />
-                            </AdvancedMarker>
-                        )}
-                    </Map>
-                </APIProvider>
-
-            </div>
-
-            <div className="flex justify-center w-full">
-                <button className="p-4 rounded-3xl bg-worange"
-                    onClick={() => {
-                        setState("BROADCAST");
-                        navigate(-1);
-                    }}>
-                    Broadcast
+        <div className="min-h-screen bg-wblue p-4 relative">
+            <div className="absolute top-4 left-4 z-50">
+                <button
+                    onClick={() => navigate('/')}
+                    className="bg-wolive text-black p-2 rounded-full shadow-lg hover:bg-green-600 transition-colors"
+                >
+                    <ChevronLeft size={30} />
                 </button>
+            </div>
+
+            <div className="max-w-2xl mx-auto pt-12">
+                <h1 className="text-2xl font-bold text-white mb-6 text-center">
+                    Create Walk Request
+                </h1>
+
+                <Card>
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-wblue mb-2">
+                                Select Pet
+                            </label>
+                            <select
+                                value={selectedPet}
+                                onChange={(e) => setSelectedPet(e.target.value)}
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-worange"
+                                required
+                            >
+                                <option value="">Choose a pet</option>
+                                {pets.map((pet) => (
+                                    <option key={pet.id} value={pet.id}>
+                                        {pet.name} ({pet.breed})
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-wblue mb-2">
+                                Duration (minutes)
+                            </label>
+                            <input
+                                type="number"
+                                min="15"
+                                max="120"
+                                value={formData.duration_minutes}
+                                onChange={(e) => setFormData(prev => ({ ...prev, duration_minutes: parseInt(e.target.value) }))}
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-worange"
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-wblue mb-2">
+                                Compensation ($)
+                            </label>
+                            <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={formData.compensation}
+                                onChange={(e) => setFormData(prev => ({ ...prev, compensation: parseFloat(e.target.value) }))}
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-worange"
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-wblue mb-2">
+                                Meeting Location
+                            </label>
+                            <input
+                                type="text"
+                                value={formData.meeting_location}
+                                onChange={(e) => setFormData(prev => ({ ...prev, meeting_location: e.target.value }))}
+                                placeholder="Where should the walker meet you?"
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-worange"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-wblue mb-2">
+                                Notes
+                            </label>
+                            <textarea
+                                value={formData.notes}
+                                onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                                placeholder="Any special instructions for the walker?"
+                                rows={3}
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-worange"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-wblue mb-2">
+                                Special Instructions
+                            </label>
+                            <textarea
+                                value={formData.special_instructions}
+                                onChange={(e) => setFormData(prev => ({ ...prev, special_instructions: e.target.value }))}
+                                placeholder="Any specific requirements or restrictions?"
+                                rows={2}
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-worange"
+                            />
+                        </div>
+
+                        <div className="flex gap-4 pt-4">
+                            <Button type="submit" disabled={loading} className="flex-1">
+                                {loading ? 'Finding walkers...' : 'Broadcast'}
+                            </Button>
+                            <Button type="button" variant="secondary" onClick={() => navigate('/')}>
+                                Cancel
+                            </Button>
+                        </div>
+                    </form>
+                </Card>
             </div>
         </div>
     );
