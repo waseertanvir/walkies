@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { APIProvider, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
 import ProtectedRoute from '../../auth/ProtectedRoute.tsx'
 import { supabase } from '../../supabaseClient.ts';
@@ -24,8 +24,9 @@ export default function App() {
   const location = useLocation();
   const center = myPosition ?? { lat: 49.24, lng: -123.05 };
   const [mapCenter, setMapCenter] = useState(center);
-  const { state } = useDeviceState();
+  const { state, setState, sessionId } = useDeviceState();
   const [loading, setLoading] = useState(true);
+  const intervalRef = useRef<number | null>(null);
 
   type UserLocation = {
     userID: string,
@@ -198,6 +199,44 @@ export default function App() {
   ];
 
   const allUsers = [...users, ...testUsers];
+  const handleWalkAcceptedNext = () => {
+    setState("WALK_IN_PROGRESS")
+  }
+
+  useEffect(() => {
+    const startCheckingForWalkerRequests = async () => {
+      console.log("Going to start looking for walkers");
+
+      if (intervalRef.current !== null) return;
+      intervalRef.current = window.setInterval(async () => {
+
+        const { data, error } = await supabase.from('sessions')
+          .select('walker_id')
+          .eq('id', sessionId)
+          .single();
+
+        console.log("Searching for walker:", data);
+
+        if (data.walker_id != null) {
+          stopCheckingForWalkerRequests();
+          setState("WALKER_HAS_ACCEPTED");
+        }
+
+      }, 2000);
+
+    };
+
+    const stopCheckingForWalkerRequests = () => {
+      if (intervalRef.current !== null) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+
+    if (state == "WAITING_FOR_WALKER") {
+      startCheckingForWalkerRequests()
+    }
+  }, []);
 
   return (
     <ProtectedRoute>
@@ -385,12 +424,14 @@ export default function App() {
               </p>
 
               <div className="relative w-full -top-5 text-center">
-                <p className="text-3xl text-white">ETA 11:30</p>
+                <p className="text-3xl text-white">Walk Accepted</p>
               </div>
 
-              <div className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-md text-center">
-                ACCEPTED
-              </div>
+              <button
+                className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-md text-center"
+                onClick={handleWalkAcceptedNext}>
+                Next
+              </button>
             </div>
           </div>
         )}
@@ -474,9 +515,9 @@ export default function App() {
 
               <div className="relative w-full -top-5 text-left">
                 <p className="text-1xl text-white">Dog: Rover</p>
-                
+
                 <p className="text-1xl text-white">Duration: 11:30 - 12:35</p>
-                
+
                 <p className="text-1xl text-white">Activities: Walk</p>
               </div>
 
