@@ -300,7 +300,7 @@ export default function App() {
               <button className="p-4 mr-2 rounded-3xl bg-worange" onClick={() => navigate("/owner/broadcast")}>
                 Broadcast
               </button>
-              <button className="p-4 ml-2 rounded-3xl bg-worange" onClick={() => navigate("/owner/schedule")}>
+              <button className="p-4 ml-2 rounded-3xl bg-worange" onClick={() => navigate("/requests/new")}>
                 Schedule
               </button>
             </div>
