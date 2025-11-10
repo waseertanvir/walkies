@@ -16,6 +16,7 @@ interface Pet {
 }
 
 export default function RequestWalk() {
+    const { state, setSessionId } = useDeviceState();
     const location = useLocation();
     const navigate = useNavigate();
     const [pets, setPets] = useState<Pet[]>([]);
@@ -63,7 +64,7 @@ export default function RequestWalk() {
             const now = new Date(Date.now());
             const formattedDate = now.toISOString().slice(0, 16);
 
-            const { error } = await supabase
+            const { data, error } = await supabase
                 .from('sessions')
                 .insert({
                     owner_id: user.id,
@@ -75,7 +76,16 @@ export default function RequestWalk() {
                     notes: formData.notes,
                     meeting_location: formData.meeting_location,
                     special_instructions: formData.special_instructions
-                });
+                })
+                .select('id');
+
+            /**
+             * TODO: Please make this dynamic. The above select call should return this data.
+             * Pass it down below to setSessionId.
+             */
+            if (data) {
+                setSessionId('a15e751c-e733-4306-a9c5-42a328f6dd72')
+            }
 
             if (error) {
                 console.error('Error creating request:', error);
@@ -83,8 +93,9 @@ export default function RequestWalk() {
                 return;
             }
 
-            alert('Request created successfully!');
-            navigate('/');
+            alert('Lets keep the dog leash ready we are finding walkers for you.');
+            setState("WAITING_FOR_WALKER")
+            navigate(-1);
         } catch (error) {
             console.error('Unexpected error:', error);
             alert('Unexpected error creating request');
