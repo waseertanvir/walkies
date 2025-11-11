@@ -314,7 +314,7 @@ export default function Track() {
   }
 
   const handleSkipReviewButtonClick = () => {
-    navigate(-1);
+    navigate('/owner/dashboard');
   }
 
   return (
@@ -583,7 +583,7 @@ export default function Track() {
               <button
                 className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-6 rounded-md"
                 type="button"
-                onClick={{ handleSkipReviewButtonClick }}
+                onClick={handleSkipReviewButtonClick}
               >
                 Skip
               </button>
