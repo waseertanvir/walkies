@@ -12,16 +12,24 @@ export interface Walk {
   walker_id: string | null;
   pet_id: string;
   status: 'draft' | 'pending' | 'accepted' | 'in_progress' | 'completed' | 'cancelled';
-  start_time: string; 
+  start_time: string;
   duration_minutes: number;
   notes: string | null;
   compensation: number;
   meeting_location: string | null;
   special_instructions: string | null;
-  created_at: string; 
-  updated_at: string; 
+  created_at: string;
+  updated_at: string;
   applications: string[] | null;
 }
+
+type UserLocation = {
+  userID: string,
+  role: string,
+  name: string,
+  position: { lat: number; lng: number },
+  timestamp: Date,
+};
 
 export default function WalkerDashboard() {
   const [username, setUsername] = useState('');
@@ -63,6 +71,70 @@ export default function WalkerDashboard() {
         hasStarted: new Date(walk.start_time) <= now && walk.status !== 'completed'
       })) as (Walk & { hasStarted: boolean })[];
 
+
+      const updateUserLocation = (updateLocation: UserLocation) => {
+        console.log(updateLocation)
+        setUsers(prevUsers => {
+          const index = prevUsers.findIndex(u => u.userID === updateLocation.userID);
+
+          if (index !== -1) {
+            // Update existing user
+            const updatedUsers = [...prevUsers];
+            updatedUsers[index] = { ...updatedUsers[index], ...updateLocation };
+            return updatedUsers;
+          } else {
+            // Add new user
+            return [...prevUsers, updateLocation];
+          }
+        });
+      };
+
+      const channel = supabase
+        .channel("liveLocations")
+        .on('broadcast', { event: "location" }, (payload) => {
+          console.log('received payload: ', payload.payload, '\n\n')
+          const tempUserLocation: UserLocation = {
+            userID: payload.payload.userID,
+            role: payload.payload.role,
+            name: payload.payload.name,
+            position: payload.payload.position,
+            timestamp: payload.payload.timestamp,
+          }
+          updateUserLocation(tempUserLocation)
+        })
+        .subscribe();
+
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            setMyPosition({
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
+            });
+          },
+          (error) => {
+            console.error("Error getting location: ", error);
+          }
+        );
+      }
+
+      const sendLocation = async (updatedPosition: any) => {
+        //broadcast user position to realtime
+        await supabase
+          .channel("liveLocations")
+          .send({
+            type: "broadcast",
+            event: "location",
+            payload: {
+              userID: userID,
+              role: userRole,
+              name: userName,
+              position: updatedPosition,
+              timestamp: new Date().toISOString(),
+            },
+          });
+      }
+
       setWalks(walksWithFlags);
       setLoading(false);
     };
@@ -102,9 +174,8 @@ export default function WalkerDashboard() {
             {walks.map((walk) => (
               <Card
                 key={walk.id}
-                className={`bg-[#D9D9D9] p-4 hover:shadow-lg transition flex flex-col items-center text-center rounded-2xl ${
-                  (walk as any).hasStarted ? 'border-4 border-green-500' : ''
-                }`}
+                className={`bg-[#D9D9D9] p-4 hover:shadow-lg transition flex flex-col items-center text-center rounded-2xl ${(walk as any).hasStarted ? 'border-4 border-green-500' : ''
+                  }`}
               >
                 <h2 className="text-xl font-semibold text-wblue mb-1">
                   Dog: {walk.pet_id}
