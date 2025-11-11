@@ -9,6 +9,8 @@ import { TrajectoryLine } from '../components/TrajectoryLine';
 import { useDeviceState } from "../DeviceStateContext";
 import logo from '../assets/Logo.png'
 import Loader from "../Loader";
+const WALK_IN_PROGRESS = 'walk_in_progress';
+const WALK_COMPLETED = 'walk_completed';
 
 type LatLng = { lat: number; lng: number };
 type Role = 'owner' | 'walker' | string;
@@ -78,7 +80,7 @@ export default function Track() {
   const [users, setUsers] = useState<UserLocation[]>([]);
   const [myPosition, setMyPosition] = useState<LatLng | null>(null);
   const [path, setPath] = useState<LatLng[]>([]);
-  const [isWalking, setIsWalking] = useState(false);
+  const [sessionStatus, setSessionStatus] = useState<string>();
   const [isLoaded, setIsLoaded] = useState(false);
   const intervalRef = useRef<number | null>(null);
 
@@ -112,7 +114,7 @@ export default function Track() {
       /**
        * TODO: This is one of the ways app is maintaining state. We need to find a single way to make use of state.
        */
-      setIsWalking(s.status === 'in_progress');
+      setSessionStatus(WALK_IN_PROGRESS);
       setIsLoaded(true);
     })();
   }, [navigate, sessionId]);
@@ -138,7 +140,7 @@ export default function Track() {
       });
 
       // if this is the walker, update the polyline path
-      if (session?.walker_id && p.userID === session.walker_id && isWalking) {
+      if (session?.walker_id && p.userID === session.walker_id && sessionStatus === WALK_IN_PROGRESS) {
         console.log(payload)
         setPath((prev) => {
           const last = prev[prev.length - 1];
@@ -188,17 +190,17 @@ export default function Track() {
       if (watchId) navigator.geolocation.clearWatch(watchId);
       if (channelRef.current) supabase.removeChannel(channelRef.current);
     };
-  }, [me, session, isWalking]);
+  }, [me, session, sessionStatus === WALK_IN_PROGRESS]);
 
   const ownerPos = users.find((u) => u.role === 'owner')?.position ?? null;
   const walkerPos = users.find((u) => u.role === 'walker')?.position ?? null;
   const iAmWalker = me?.role === 'walker' && session?.walker_id === me.id;
 
   const canStart =
-    iAmWalker && session?.status === 'accepted' && within10m(ownerPos, walkerPos) && !isWalking;
+    iAmWalker && session?.status === 'accepted' && within10m(ownerPos, walkerPos) && sessionStatus !== WALK_IN_PROGRESS;
 
   const canEnd = (() => {
-    if (!session || !iAmWalker || session.status !== 'in_progress') return false;
+    if (!session || !iAmWalker || session.status !== WALK_IN_PROGRESS) return false;
     const end = new Date(session.start_time);
     end.setMinutes(end.getMinutes() + session.duration_minutes);
     return within10m(ownerPos, walkerPos) && new Date() >= end;
@@ -208,11 +210,11 @@ export default function Track() {
     if (!session) return;
 
     await supabase.from('sessions')
-      .update({ status: 'in_progress' })
+      .update({ status: WALK_IN_PROGRESS })
       .eq('id', session.id);
 
-    setSession({ ...session, status: 'in_progress' });
-    setIsWalking(true);
+    setSession({ ...session, status: WALK_IN_PROGRESS });
+    setSessionStatus(WALK_IN_PROGRESS)
     startInterval();
   };
 
@@ -256,7 +258,7 @@ export default function Track() {
     if (!session) return;
     await supabase.from('sessions').update({ status: 'completed' }).eq('id', session.id);
     setSession({ ...session, status: 'completed' });
-    setIsWalking(false);
+    setSessionStatus(WALK_COMPLETED);
     stopInterval();
   };
 
@@ -386,7 +388,7 @@ export default function Track() {
             </AdvancedMarker>
           )}
 
-          {isWalking && path.length > 1 && <WalkerPath path={path} />}
+          {sessionStatus === WALK_IN_PROGRESS && path.length > 1 && <WalkerPath path={path} />}
         </Map>
       </APIProvider>
 
@@ -481,7 +483,7 @@ export default function Track() {
       )}
 
 
-      {me?.role === 'owner' && state === 'WALK_IN_PROGRESS' && (
+      {me?.role === 'owner' && sessionStatus === WALK_IN_PROGRESS && (
         <div className="absolute bottom-0 w-full h-auto rounded-t-xl rounded-b-none bg-wsage p-5">
           <div className='grid items-center justify-center h-full w-full'>
             <img
