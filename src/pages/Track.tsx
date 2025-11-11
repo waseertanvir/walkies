@@ -6,6 +6,10 @@ import { useNavigate, useParams } from 'react-router';
 import OwnerMenu from '../components/ownerMenu';
 import WalkerMenu from '../components/walkerMenu';
 import { TrajectoryLine } from '../components/TrajectoryLine';
+import { useDeviceState } from "../DeviceStateContext";
+import logo from '../assets/Logo.png'
+import Loader from "../Loader";
+import { WalkStatus } from '../constants/WalkStatus';
 
 type LatLng = { lat: number; lng: number };
 type Role = 'owner' | 'walker' | string;
@@ -75,12 +79,13 @@ export default function Track() {
   const [users, setUsers] = useState<UserLocation[]>([]);
   const [myPosition, setMyPosition] = useState<LatLng | null>(null);
   const [path, setPath] = useState<LatLng[]>([]);
-  const [isWalking, setIsWalking] = useState(false);
+  const [sessionStatus, setSessionStatus] = useState<string>();
   const [isLoaded, setIsLoaded] = useState(false);
   const intervalRef = useRef<number | null>(null);
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const center = useMemo<LatLng>(() => myPosition ?? { lat: 49.24, lng: -123.05 }, [myPosition]);
+  const { state, setState } = useDeviceState();
 
   useEffect(() => {
     (async () => {
@@ -105,7 +110,10 @@ export default function Track() {
       }
 
       setSession(s);
-      setIsWalking(s.status === 'in_progress');
+      /**
+       * TODO: This is one of the ways app is maintaining state. We need to find a single way to make use of state.
+       */
+      setSessionStatus(s.status);
       setIsLoaded(true);
     })();
   }, [navigate, sessionId]);
@@ -131,7 +139,7 @@ export default function Track() {
       });
 
       // if this is the walker, update the polyline path
-      if (session?.walker_id && p.userID === session.walker_id && isWalking) {
+      if (session?.walker_id && p.userID === session.walker_id && sessionStatus === WalkStatus.InProgress) {
         console.log(payload)
         setPath((prev) => {
           const last = prev[prev.length - 1];
@@ -181,17 +189,17 @@ export default function Track() {
       if (watchId) navigator.geolocation.clearWatch(watchId);
       if (channelRef.current) supabase.removeChannel(channelRef.current);
     };
-  }, [me, session, isWalking]);
+  }, [me, session, sessionStatus === WalkStatus.InProgress]);
 
   const ownerPos = users.find((u) => u.role === 'owner')?.position ?? null;
   const walkerPos = users.find((u) => u.role === 'walker')?.position ?? null;
   const iAmWalker = me?.role === 'walker' && session?.walker_id === me.id;
 
   const canStart =
-    iAmWalker && session?.status === 'accepted' && within10m(ownerPos, walkerPos) && !isWalking;
+    iAmWalker && session?.status === 'accepted' && within10m(ownerPos, walkerPos) && sessionStatus !== WalkStatus.InProgress;
 
   const canEnd = (() => {
-    if (!session || !iAmWalker || session.status !== 'in_progress') return false;
+    if (!session || !iAmWalker || session.status !== WalkStatus.InProgress) return false;
     const end = new Date(session.start_time);
     end.setMinutes(end.getMinutes() + session.duration_minutes);
     return within10m(ownerPos, walkerPos) && new Date() >= end;
@@ -199,9 +207,13 @@ export default function Track() {
 
   const startWalk = async () => {
     if (!session) return;
-    await supabase.from('sessions').update({ status: 'in_progress' }).eq('id', session.id);
-    setSession({ ...session, status: 'in_progress' });
-    setIsWalking(true);
+
+    await supabase.from('sessions')
+      .update({ status: WalkStatus.InProgress })
+      .eq('id', session.id);
+
+    setSession({ ...session, status: WalkStatus.InProgress });
+    setSessionStatus(WalkStatus.InProgress)
     startInterval();
   };
 
@@ -245,7 +257,7 @@ export default function Track() {
     if (!session) return;
     await supabase.from('sessions').update({ status: 'completed' }).eq('id', session.id);
     setSession({ ...session, status: 'completed' });
-    setIsWalking(false);
+    setSessionStatus(WalkStatus.Completed);
     stopInterval();
   };
 
@@ -258,37 +270,72 @@ export default function Track() {
       </ProtectedRoute>
     );
 
+  const startCheckingForWalkerRequests = async () => {
+    console.log("Going to start looking for walkers");
+
+    if (intervalRef.current !== null) return;
+    intervalRef.current = window.setInterval(async () => {
+
+      const { data, error } = await supabase.from('sessions')
+        .select('walker_id')
+        .eq('id', sessionId)
+        .single();
+
+      console.log("Searching for walker:", data);
+
+      if (data.walker_id != null) {
+        stopCheckingForWalkerRequests();
+        setState(WalkStatus.Accepted);
+      }
+
+    }, 2000);
+
+  };
+
+  const handleAcceptedRequestNextButtonClick = () => {
+    setState(WalkStatus.InProgress);
+  }
+
+  const stopCheckingForWalkerRequests = () => {
+    if (intervalRef.current !== null) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  };
+
+  if (state == WalkStatus.Pending) {
+    startCheckingForWalkerRequests()
+  }
+
   return (
     <ProtectedRoute>
       {me?.role === 'owner' && <OwnerMenu />}
       {me?.role === 'walker' && <WalkerMenu />}
 
-      <div className="absolute top-3 right-3 z-10 bg-white p-3 rounded-lg shadow">
-        <div>Status: {session?.status}</div>
-        <button
-          onClick={startWalk}
-/*          The following buttons are temporarily enabled for testing. Please remove this comment before final testing. 
-            disabled={!canStart}
- */          className={`mt-2 px-3 py-1 rounded ${true ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-600'
-            }`}
-        >
-          Start Walk
-        </button>
-        <button
-          onClick={endWalk}
-/*        The following buttons are temporarily enabled for testing. Please remove this comment before final testing.  
-          disabled={!canEnd}
- */          className={`mt-2 px-3 py-1 rounded ${true ? 'bg-green-600 text-white' : 'bg-gray-300 text-gray-600'
-            }`}
-        >
-          End Walk
-        </button>
-      </div>
+      {me?.role === 'walker' &&
+        <div className="absolute top-3 right-3 z-10 bg-white p-3 rounded-lg shadow">
+          <div>Status: {session?.status}</div>
+          <button
+            onClick={startWalk}
+            className={`mt-2 px-3 py-1 rounded ${true ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-600'
+              }`}
+          >
+            Start Walk
+          </button>
+          <button
+            onClick={endWalk}
+            className={`mt-2 px-3 py-1 rounded ${true ? 'bg-green-600 text-white' : 'bg-gray-300 text-gray-600'
+              }`}
+          >
+            End Walk
+          </button>
+        </div>
+      }
 
       <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}>
         <Map
           mapId={import.meta.env.VITE_GOOGLE_MAP_ID}
-          style={{ width: '100vw', height: '100vh' }}
+          style={{ width: '100vw', height: '75%' }}
           defaultCenter={center}
           defaultZoom={16}
           disableDefaultUI
@@ -336,9 +383,212 @@ export default function Track() {
             </AdvancedMarker>
           )}
 
-          {isWalking && path.length > 1 && <WalkerPath path={path} />}
+          {sessionStatus === WalkStatus.InProgress && path.length > 1 && <WalkerPath path={path} />}
         </Map>
       </APIProvider>
+
+      {me?.role === 'owner' && sessionStatus === WalkStatus.Pending && (
+        <div className="absolute bottom-0 w-full h-25% rounded-t-xl rounded-b-none bg-wsage p-5">
+          <div className='grid items-center justify-center h-full w-full'>
+            <img
+              className="
+                relative
+                left-1/2
+                -top-20
+                transform -translate-x-1/2
+                max-w-[125px] max-h-[125px] w-full h-auto
+                rounded-full border-4 border-yellow-400 object-cover
+                "
+              src="https://m.gettywallpapers.com/wp-content/uploads/2023/09/Grand-Theft-Auto-5-Profile-Picture.jpg"
+              alt="Franklin with Chop."
+            />
+
+            <img
+              src={logo}
+              alt="Logo"
+              className="
+                absolute          
+                top-0 right-0     
+                m-5     
+                max-h-10         
+                max-w-10      
+                h-auto
+                "
+            />
+
+            <p className="absolute inset-x-0 top-20 text-center text-yellow-500 font-bold text-1xl">
+              Franklin
+            </p>
+
+            <div className='relative w-full -top-5'>
+              <Loader />
+            </div>
+
+            <div className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-md text-center">
+              REQUESTED
+            </div>
+          </div>
+        </div>
+      )}
+
+      {me?.role === 'owner' && sessionStatus === WalkStatus.Accepted && (
+        <div className="absolute bottom-0 w-full h-auto rounded-t-xl rounded-b-none bg-wsage p-5">
+          <div className='grid items-center justify-center h-full w-full'>
+            <img
+              className="
+                relative
+                left-1/2
+                -top-20
+                transform -translate-x-1/2
+                max-w-[125px] max-h-[125px] w-full h-auto
+                rounded-full border-4 border-yellow-400 object-cover
+                "
+              src="https://m.gettywallpapers.com/wp-content/uploads/2023/09/Grand-Theft-Auto-5-Profile-Picture.jpg"
+              alt="Franklin with Chop."
+            />
+
+            <img
+              src={logo}
+              alt="Logo"
+              className="
+                absolute          
+                top-0 right-0     
+                m-5     
+                max-h-10         
+                max-w-10      
+                h-auto
+                "
+            />
+
+            <p className="absolute inset-x-0 top-20 text-center text-yellow-500 font-bold text-1xl">
+              Franklin
+            </p>
+
+            <div className="relative w-full -top-5 text-center">
+              <p className="text-3xl text-white">Walk Accepted</p>
+            </div>
+
+            <button
+              className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-md text-center"
+              onClick={handleAcceptedRequestNextButtonClick}>
+              Next
+            </button>
+          </div>
+        </div>
+      )}
+
+
+      {me?.role === 'owner' && sessionStatus === WalkStatus.InProgress && (
+        <div className="absolute bottom-0 w-full h-auto rounded-t-xl rounded-b-none bg-wsage p-5">
+          <div className='grid items-center justify-center h-full w-full'>
+            <img
+              className="
+                relative
+                left-1/2
+                -top-20
+                transform -translate-x-1/2
+                max-w-[125px] max-h-[125px] w-full h-auto
+                rounded-full border-4 border-yellow-400 object-cover
+                "
+              src="https://m.gettywallpapers.com/wp-content/uploads/2023/09/Grand-Theft-Auto-5-Profile-Picture.jpg"
+              alt="Franklin with Chop."
+            />
+
+            <img
+              src={logo}
+              alt="Logo"
+              className="
+                absolute          
+                top-0 right-0     
+                m-5     
+                max-h-10         
+                max-w-10      
+                h-auto
+                "
+            />
+
+            <p className="absolute inset-x-0 top-20 text-center text-yellow-500 font-bold text-1xl">
+              Franklin
+            </p>
+
+            <div className="relative w-full -top-5 text-center">
+              <p className="text-1xl text-white">Your dog is having a very good time.</p>
+            </div>
+
+            <div className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-md text-center">
+              Walk in progress
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {me?.role === 'owner' && sessionStatus === WalkStatus.Rate && (
+        <div className="absolute bottom-0 w-full h-auto rounded-t-xl rounded-b-none bg-wsage p-5">
+          <div className='grid items-center justify-center h-full w-full'>
+            <img
+              className="
+                relative
+                left-1/2
+                -top-20
+                transform -translate-x-1/2
+                max-w-[125px] max-h-[125px] w-full h-auto
+                rounded-full border-4 border-yellow-400 object-cover
+                "
+              src="https://m.gettywallpapers.com/wp-content/uploads/2023/09/Grand-Theft-Auto-5-Profile-Picture.jpg"
+              alt="Franklin with Chop."
+            />
+
+            <img
+              src={logo}
+              alt="Logo"
+              className="
+                absolute          
+                top-0 right-0     
+                m-5     
+                max-h-10         
+                max-w-10      
+                h-auto
+                "
+            />
+
+            <p className="absolute inset-x-0 top-20 text-center text-yellow-500 font-bold text-1xl">
+              Franklin
+            </p>
+
+            <div className="relative w-full -top-5 text-left">
+              <p className="text-1xl text-white">Dog: Rover</p>
+
+              <p className="text-1xl text-white">Duration: 11:30 - 12:35</p>
+
+              <p className="text-1xl text-white">Activities: Walk</p>
+            </div>
+
+            <div className='relative w-full h-auto border border-white-300'>
+              <input className='text-white w-75 h-50 text-center' type='text' placeholder='Enter your review here.'>
+              </input>
+            </div>
+
+            {/* Flex container that holds both buttons */}
+            <div className="flex gap-4 justify-center mt-5">
+              <button
+                className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-6 rounded-md"
+                type="button"
+              >
+                Skip
+              </button>
+
+              <button
+                className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-6 rounded-md"
+                type="submit"
+              >
+                Submit
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
     </ProtectedRoute>
   );
 }

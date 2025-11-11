@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { APIProvider, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
 import ProtectedRoute from '../../auth/ProtectedRoute.tsx'
 import { supabase } from '../../supabaseClient.ts';
@@ -7,8 +7,6 @@ import OwnerMenu from '../../components/ownerMenu.tsx';
 import profileBanner from '../../assets/profile_banner.png';
 import '../App.css'
 import { useDeviceState } from "../../DeviceStateContext";
-import logo from '../../assets/Logo.png'
-import Loader from "../../Loader";
 
 export default function App() {
   const [myPosition, setMyPosition] = useState<{ lat: number; lng: number } | null>(null);
@@ -24,8 +22,9 @@ export default function App() {
   const location = useLocation();
   const center = myPosition ?? { lat: 49.24, lng: -123.05 };
   const [mapCenter, setMapCenter] = useState(center);
-  const { state } = useDeviceState();
+  const { state, setState, sessionId } = useDeviceState();
   const [loading, setLoading] = useState(true);
+  const intervalRef = useRef<number | null>(null);
 
   type UserLocation = {
     userID: string,
@@ -294,151 +293,16 @@ export default function App() {
           </div>
         )}
 
-        {!clickedUser && state == "IDLE" && (
-          <div className="absolute bottom-0 rounded-t-xl rounded-b-none bg-wsage w-full h-[10vh] flex justify-center items-center gap-20">
-            <div>
-              <button className="p-4 mr-2 rounded-3xl bg-worange" onClick={() => navigate("/owner/broadcast")}>
-                Broadcast
-              </button>
-              <button className="p-4 ml-2 rounded-3xl bg-worange" onClick={() => navigate("/owner/schedule")}>
-                Schedule
-              </button>
-            </div>
+        <div className="absolute bottom-0 rounded-t-xl rounded-b-none bg-wsage w-full h-[10vh] flex justify-center items-center gap-20">
+          <div>
+            <button className="p-4 mr-2 rounded-3xl bg-worange" onClick={() => navigate("/owner/broadcast")}>
+              Broadcast
+            </button>
+            <button className="p-4 ml-2 rounded-3xl bg-worange" onClick={() => navigate("/requests/new")}>
+              Schedule
+            </button>
           </div>
-        )}
-
-        {!clickedUser && state === 'WAITING_FOR_WALKER' && (
-          <div className="absolute bottom-0 w-full h-auto rounded-t-xl rounded-b-none bg-wsage p-5">
-            <div className='grid items-center justify-center h-full w-full'>
-              <img
-                className="
-                relative
-                left-1/2
-                -top-20
-                transform -translate-x-1/2
-                max-w-[125px] max-h-[125px] w-full h-auto
-                rounded-full border-4 border-yellow-400 object-cover
-                "
-                src="https://m.gettywallpapers.com/wp-content/uploads/2023/09/Grand-Theft-Auto-5-Profile-Picture.jpg"
-                alt="Franklin with Chop."
-              />
-
-              <img
-                src={logo}
-                alt="Logo"
-                className="
-                absolute          
-                top-0 right-0     
-                m-5     
-                max-h-10         
-                max-w-10      
-                h-auto
-                "
-              />
-
-              <p className="absolute inset-x-0 top-20 text-center text-yellow-500 font-bold text-1xl">
-                Franklin
-              </p>
-
-              <div className='relative w-full -top-5'>
-                <Loader />
-              </div>
-
-              <div className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-md text-center">
-                REQUESTED
-              </div>
-            </div>
-          </div>
-        )}
-
-        {!clickedUser && state === 'WALKER_HAS_ACCEPTED' && (
-          <div className="absolute bottom-0 w-full h-auto rounded-t-xl rounded-b-none bg-wsage p-5">
-            <div className='grid items-center justify-center h-full w-full'>
-              <img
-                className="
-                relative
-                left-1/2
-                -top-20
-                transform -translate-x-1/2
-                max-w-[125px] max-h-[125px] w-full h-auto
-                rounded-full border-4 border-yellow-400 object-cover
-                "
-                src="https://m.gettywallpapers.com/wp-content/uploads/2023/09/Grand-Theft-Auto-5-Profile-Picture.jpg"
-                alt="Franklin with Chop."
-              />
-
-              <img
-                src={logo}
-                alt="Logo"
-                className="
-                absolute          
-                top-0 right-0     
-                m-5     
-                max-h-10         
-                max-w-10      
-                h-auto
-                "
-              />
-
-              <p className="absolute inset-x-0 top-20 text-center text-yellow-500 font-bold text-1xl">
-                Franklin
-              </p>
-
-              <div className="relative w-full -top-5 text-center">
-                <p className="text-3xl text-white">ETA 11:30</p>
-              </div>
-
-              <div className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-md text-center">
-                ACCEPTED
-              </div>
-            </div>
-          </div>
-        )}
-
-        {!clickedUser && state === 'WALK_IN_PROGRESS' && (
-          <div className="absolute bottom-0 w-full h-auto rounded-t-xl rounded-b-none bg-wsage p-5">
-            <div className='grid items-center justify-center h-full w-full'>
-              <img
-                className="
-                relative
-                left-1/2
-                -top-20
-                transform -translate-x-1/2
-                max-w-[125px] max-h-[125px] w-full h-auto
-                rounded-full border-4 border-yellow-400 object-cover
-                "
-                src="https://m.gettywallpapers.com/wp-content/uploads/2023/09/Grand-Theft-Auto-5-Profile-Picture.jpg"
-                alt="Franklin with Chop."
-              />
-
-              <img
-                src={logo}
-                alt="Logo"
-                className="
-                absolute          
-                top-0 right-0     
-                m-5     
-                max-h-10         
-                max-w-10      
-                h-auto
-                "
-              />
-
-              <p className="absolute inset-x-0 top-20 text-center text-yellow-500 font-bold text-1xl">
-                Franklin
-              </p>
-
-              <div className="relative w-full -top-5 text-center">
-                <p className="text-1xl text-white">Your dog is having a very good time.</p>
-              </div>
-
-              <div className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-md text-center">
-                Walk in progress
-              </div>
-            </div>
-          </div>
-        )}
-
+        </div>        
       </APIProvider>
     </ProtectedRoute>
   );
