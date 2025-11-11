@@ -199,7 +199,11 @@ export default function Track() {
 
   const startWalk = async () => {
     if (!session) return;
-    await supabase.from('sessions').update({ status: 'in_progress' }).eq('id', session.id);
+    
+    await supabase.from('sessions')
+    .update({ status: 'in_progress' })
+    .eq('id', session.id);
+
     setSession({ ...session, status: 'in_progress' });
     setIsWalking(true);
     startInterval();
@@ -263,6 +267,7 @@ export default function Track() {
       {me?.role === 'owner' && <OwnerMenu />}
       {me?.role === 'walker' && <WalkerMenu />}
 
+      {me?.role === 'walker' &&
       <div className="absolute top-3 right-3 z-10 bg-white p-3 rounded-lg shadow">
         <div>Status: {session?.status}</div>
         <button
@@ -284,6 +289,7 @@ export default function Track() {
           End Walk
         </button>
       </div>
+      }
 
       <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}>
         <Map
