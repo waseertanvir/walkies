@@ -213,36 +213,6 @@ export default function Track() {
 
     setSession({ ...session, status: WalkStatus.InProgress });
     setSessionStatus(WalkStatus.InProgress)
-    startInterval();
-  };
-
-  const startInterval = async () => {
-    if (intervalRef.current !== null) return;
-    intervalRef.current = window.setInterval(() => {
-      if (myPosition != null) {
-        console.log("Latitide: " + myPosition.lat + ", Longitude: " + myPosition.lng);
-
-        addPath(myPosition);
-
-        /**
-         * This whole function call can be replaced via a POST REST call.
-         */
-        supabase
-          .from('session_detail')
-          .insert({ session_id: sessionId, lat: myPosition.lat, long: myPosition.lng })
-          .then(({ data, error }) => {
-            if (error) {
-              console.error("Insert failed:", error);
-            } else {
-              console.log("Insert succeeded:", data);
-            }
-          });
-      }
-    }, 2000);
-  };
-
-  const addPath = (point: LatLng) => {
-    setPath(prev => [...prev, point]);
   };
 
   const stopInterval = () => {
@@ -261,7 +231,6 @@ export default function Track() {
 
     setSession({ ...session, status: WalkStatus.Completed });
     setSessionStatus(WalkStatus.Completed);
-    stopInterval();
   };
 
   if (!isLoaded)
@@ -316,6 +285,10 @@ export default function Track() {
 
   if (sessionStatus == WalkStatus.Pending) {
     startCheckingForWalkerRequests()
+  }
+
+  const handleSkipReviewButtonClick = () => {
+    navigate(-1);
   }
 
   return (
@@ -584,6 +557,7 @@ export default function Track() {
               <button
                 className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-6 rounded-md"
                 type="button"
+                onClick={{handleSkipReviewButtonClick}}
               >
                 Skip
               </button>
