@@ -6,6 +6,9 @@ import { useNavigate, useParams } from 'react-router';
 import OwnerMenu from '../components/ownerMenu';
 import WalkerMenu from '../components/walkerMenu';
 import { TrajectoryLine } from '../components/TrajectoryLine';
+import { useDeviceState } from "../DeviceStateContext";
+import logo from '../assets/Logo.png'
+import Loader from "../Loader";
 
 type LatLng = { lat: number; lng: number };
 type Role = 'owner' | 'walker' | string;
@@ -81,6 +84,7 @@ export default function Track() {
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const center = useMemo<LatLng>(() => myPosition ?? { lat: 49.24, lng: -123.05 }, [myPosition]);
+  const { state, setState } = useDeviceState();
 
   useEffect(() => {
     (async () => {
@@ -105,6 +109,9 @@ export default function Track() {
       }
 
       setSession(s);
+      /**
+       * TODO: This is one of the ways app is maintaining state. We need to find a single way to make use of state.
+       */
       setIsWalking(s.status === 'in_progress');
       setIsLoaded(true);
     })();
@@ -199,10 +206,10 @@ export default function Track() {
 
   const startWalk = async () => {
     if (!session) return;
-    
+
     await supabase.from('sessions')
-    .update({ status: 'in_progress' })
-    .eq('id', session.id);
+      .update({ status: 'in_progress' })
+      .eq('id', session.id);
 
     setSession({ ...session, status: 'in_progress' });
     setIsWalking(true);
@@ -268,33 +275,33 @@ export default function Track() {
       {me?.role === 'walker' && <WalkerMenu />}
 
       {me?.role === 'walker' &&
-      <div className="absolute top-3 right-3 z-10 bg-white p-3 rounded-lg shadow">
-        <div>Status: {session?.status}</div>
-        <button
-          onClick={startWalk}
+        <div className="absolute top-3 right-3 z-10 bg-white p-3 rounded-lg shadow">
+          <div>Status: {session?.status}</div>
+          <button
+            onClick={startWalk}
 /*          The following buttons are temporarily enabled for testing. Please remove this comment before final testing. 
             disabled={!canStart}
  */          className={`mt-2 px-3 py-1 rounded ${true ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-600'
-            }`}
-        >
-          Start Walk
-        </button>
-        <button
-          onClick={endWalk}
+              }`}
+          >
+            Start Walk
+          </button>
+          <button
+            onClick={endWalk}
 /*        The following buttons are temporarily enabled for testing. Please remove this comment before final testing.  
           disabled={!canEnd}
  */          className={`mt-2 px-3 py-1 rounded ${true ? 'bg-green-600 text-white' : 'bg-gray-300 text-gray-600'
-            }`}
-        >
-          End Walk
-        </button>
-      </div>
+              }`}
+          >
+            End Walk
+          </button>
+        </div>
       }
 
       <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}>
         <Map
           mapId={import.meta.env.VITE_GOOGLE_MAP_ID}
-          style={{ width: '100vw', height: '100vh' }}
+          style={{ width: '100vw', height: '75%' }}
           defaultCenter={center}
           defaultZoom={16}
           disableDefaultUI
@@ -345,6 +352,50 @@ export default function Track() {
           {isWalking && path.length > 1 && <WalkerPath path={path} />}
         </Map>
       </APIProvider>
+
+      {me?.role === 'owner' && state === 'WAITING_FOR_WALKER' && (
+        <div className="absolute bottom-0 w-full h-25% rounded-t-xl rounded-b-none bg-wsage p-5">
+          <div className='grid items-center justify-center h-full w-full'>
+            <img
+              className="
+                relative
+                left-1/2
+                -top-20
+                transform -translate-x-1/2
+                max-w-[125px] max-h-[125px] w-full h-auto
+                rounded-full border-4 border-yellow-400 object-cover
+                "
+              src="https://m.gettywallpapers.com/wp-content/uploads/2023/09/Grand-Theft-Auto-5-Profile-Picture.jpg"
+              alt="Franklin with Chop."
+            />
+
+            <img
+              src={logo}
+              alt="Logo"
+              className="
+                absolute          
+                top-0 right-0     
+                m-5     
+                max-h-10         
+                max-w-10      
+                h-auto
+                "
+            />
+
+            <p className="absolute inset-x-0 top-20 text-center text-yellow-500 font-bold text-1xl">
+              Franklin
+            </p>
+
+            <div className='relative w-full -top-5'>
+              <Loader />
+            </div>
+
+            <div className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-md text-center">
+              REQUESTED
+            </div>
+          </div>
+        </div>
+      )}
     </ProtectedRoute>
   );
 }
