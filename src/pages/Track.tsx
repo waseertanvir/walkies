@@ -9,8 +9,11 @@ import { TrajectoryLine } from '../components/TrajectoryLine';
 import { useDeviceState } from "../DeviceStateContext";
 import logo from '../assets/Logo.png'
 import Loader from "../Loader";
+const WAITING_FOR_WALKER = 'waiting_for_walker';
+const WALKER_HAS_ACCEPTED = 'walker_has_accepted';
 const WALK_IN_PROGRESS = 'walk_in_progress';
 const WALK_COMPLETED = 'walk_completed';
+const RATE_WALK = 'rate_walk';
 
 type LatLng = { lat: number; lng: number };
 type Role = 'owner' | 'walker' | string;
@@ -392,7 +395,7 @@ export default function Track() {
         </Map>
       </APIProvider>
 
-      {me?.role === 'owner' && state === 'WAITING_FOR_WALKER' && (
+      {me?.role === 'owner' && sessionStatus === WAITING_FOR_WALKER && (
         <div className="absolute bottom-0 w-full h-25% rounded-t-xl rounded-b-none bg-wsage p-5">
           <div className='grid items-center justify-center h-full w-full'>
             <img
@@ -436,7 +439,7 @@ export default function Track() {
         </div>
       )}
 
-      {me?.role === 'owner' && state === 'WALKER_HAS_ACCEPTED' && (
+      {me?.role === 'owner' && sessionStatus === WALKER_HAS_ACCEPTED && (
         <div className="absolute bottom-0 w-full h-auto rounded-t-xl rounded-b-none bg-wsage p-5">
           <div className='grid items-center justify-center h-full w-full'>
             <img
@@ -528,7 +531,7 @@ export default function Track() {
       )}
 
 
-      {me?.role === 'owner' && state === 'RATE_WALK' && (
+      {me?.role === 'owner' && sessionStatus === RATE_WALK && (
         <div className="absolute bottom-0 w-full h-auto rounded-t-xl rounded-b-none bg-wsage p-5">
           <div className='grid items-center justify-center h-full w-full'>
             <img
