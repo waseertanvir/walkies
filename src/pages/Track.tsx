@@ -533,8 +533,7 @@ export default function Track() {
         </div>
       )}
 
-
-      {me?.role === 'owner' && sessionStatus === WalkStatus.Rate && (
+      {me?.role === 'owner' && sessionStatus === WalkStatus.Completed && (
         <div className="absolute bottom-0 w-full h-auto rounded-t-xl rounded-b-none bg-wsage p-5">
           <div className='grid items-center justify-center h-full w-full'>
             <img
