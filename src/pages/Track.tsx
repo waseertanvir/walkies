@@ -254,8 +254,12 @@ export default function Track() {
 
   const endWalk = async () => {
     if (!session) return;
-    await supabase.from('sessions').update({ status: 'completed' }).eq('id', session.id);
-    setSession({ ...session, status: 'completed' });
+    
+    await supabase.from('sessions')
+      .update({ status: WalkStatus.Completed })
+      .eq('id', session.id);
+
+    setSession({ ...session, status: WalkStatus.Completed });
     setSessionStatus(WalkStatus.Completed);
     stopInterval();
   };
@@ -283,7 +287,7 @@ export default function Track() {
       console.log("Searching for walker:", data);
 
       if (data.walker_id != null) {
-        stopCheckingForWalkerRequests();
+        stopInterval();
         setSessionStatus(WalkStatus.Accepted);
       }
 
