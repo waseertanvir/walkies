@@ -307,7 +307,7 @@ export default function Track() {
     }
   };
 
-  if (state == "WAITING_FOR_WALKER") {
+  if (state == WAITING_FOR_WALKER) {
     startCheckingForWalkerRequests()
   }
 
