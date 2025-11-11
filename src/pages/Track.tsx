@@ -291,16 +291,24 @@ export default function Track() {
 
   };
 
-  const handleAcceptedRequestNextButtonClick = () => {
-    setSessionStatus(WalkStatus.InProgress);
-  }
+  const handleAcceptedRequestNextButtonClick = async () => {
+    console.log("Going to start checking if the walker has started walk.");
 
-  const stopCheckingForWalkerRequests = () => {
-    if (intervalRef.current !== null) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-  };
+    if (intervalRef.current !== null) return;
+    intervalRef.current = window.setInterval(async () => {
+
+      const { data, error } = await supabase.from('sessions')
+        .select('status')
+        .eq('id', sessionId)
+        .single();
+
+      if (data != null && data.status == WalkStatus.InProgress) {
+        setSessionStatus(WalkStatus.InProgress);
+        stopInterval()
+      }
+
+    }, 2000);
+  }
 
   if (sessionStatus == WalkStatus.Pending) {
     startCheckingForWalkerRequests()
