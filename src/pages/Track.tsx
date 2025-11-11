@@ -9,11 +9,7 @@ import { TrajectoryLine } from '../components/TrajectoryLine';
 import { useDeviceState } from "../DeviceStateContext";
 import logo from '../assets/Logo.png'
 import Loader from "../Loader";
-const WAITING_FOR_WALKER = 'pending';
-const WALKER_HAS_ACCEPTED = 'walker_has_accepted';
-const WALK_IN_PROGRESS = 'walk_in_progress';
-const WALK_COMPLETED = 'walk_completed';
-const RATE_WALK = 'rate_walk';
+import { WalkStatus } from '../constants/WalkStatus';
 
 type LatLng = { lat: number; lng: number };
 type Role = 'owner' | 'walker' | string;
@@ -143,7 +139,7 @@ export default function Track() {
       });
 
       // if this is the walker, update the polyline path
-      if (session?.walker_id && p.userID === session.walker_id && sessionStatus === WALK_IN_PROGRESS) {
+      if (session?.walker_id && p.userID === session.walker_id && sessionStatus === WalkStatus.InProgress) {
         console.log(payload)
         setPath((prev) => {
           const last = prev[prev.length - 1];
@@ -193,17 +189,17 @@ export default function Track() {
       if (watchId) navigator.geolocation.clearWatch(watchId);
       if (channelRef.current) supabase.removeChannel(channelRef.current);
     };
-  }, [me, session, sessionStatus === WALK_IN_PROGRESS]);
+  }, [me, session, sessionStatus === WalkStatus.InProgress]);
 
   const ownerPos = users.find((u) => u.role === 'owner')?.position ?? null;
   const walkerPos = users.find((u) => u.role === 'walker')?.position ?? null;
   const iAmWalker = me?.role === 'walker' && session?.walker_id === me.id;
 
   const canStart =
-    iAmWalker && session?.status === 'accepted' && within10m(ownerPos, walkerPos) && sessionStatus !== WALK_IN_PROGRESS;
+    iAmWalker && session?.status === 'accepted' && within10m(ownerPos, walkerPos) && sessionStatus !== WalkStatus.InProgress;
 
   const canEnd = (() => {
-    if (!session || !iAmWalker || session.status !== WALK_IN_PROGRESS) return false;
+    if (!session || !iAmWalker || session.status !== WalkStatus.InProgress) return false;
     const end = new Date(session.start_time);
     end.setMinutes(end.getMinutes() + session.duration_minutes);
     return within10m(ownerPos, walkerPos) && new Date() >= end;
@@ -213,11 +209,11 @@ export default function Track() {
     if (!session) return;
 
     await supabase.from('sessions')
-      .update({ status: WALK_IN_PROGRESS })
+      .update({ status: WalkStatus.InProgress })
       .eq('id', session.id);
 
-    setSession({ ...session, status: WALK_IN_PROGRESS });
-    setSessionStatus(WALK_IN_PROGRESS)
+    setSession({ ...session, status: WalkStatus.InProgress });
+    setSessionStatus(WalkStatus.InProgress)
     startInterval();
   };
 
@@ -261,7 +257,7 @@ export default function Track() {
     if (!session) return;
     await supabase.from('sessions').update({ status: 'completed' }).eq('id', session.id);
     setSession({ ...session, status: 'completed' });
-    setSessionStatus(WALK_COMPLETED);
+    setSessionStatus(WalkStatus.Completed);
     stopInterval();
   };
 
@@ -307,7 +303,7 @@ export default function Track() {
     }
   };
 
-  if (state == WAITING_FOR_WALKER) {
+  if (state == WalkStatus.Pending) {
     startCheckingForWalkerRequests()
   }
 
@@ -391,11 +387,11 @@ export default function Track() {
             </AdvancedMarker>
           )}
 
-          {sessionStatus === WALK_IN_PROGRESS && path.length > 1 && <WalkerPath path={path} />}
+          {sessionStatus === WalkStatus.InProgress && path.length > 1 && <WalkerPath path={path} />}
         </Map>
       </APIProvider>
 
-      {me?.role === 'owner' && sessionStatus === WAITING_FOR_WALKER && (
+      {me?.role === 'owner' && sessionStatus === WalkStatus.Pending && (
         <div className="absolute bottom-0 w-full h-25% rounded-t-xl rounded-b-none bg-wsage p-5">
           <div className='grid items-center justify-center h-full w-full'>
             <img
@@ -439,7 +435,7 @@ export default function Track() {
         </div>
       )}
 
-      {me?.role === 'owner' && sessionStatus === WALKER_HAS_ACCEPTED && (
+      {me?.role === 'owner' && sessionStatus === WalkStatus.Accepted && (
         <div className="absolute bottom-0 w-full h-auto rounded-t-xl rounded-b-none bg-wsage p-5">
           <div className='grid items-center justify-center h-full w-full'>
             <img
@@ -486,7 +482,7 @@ export default function Track() {
       )}
 
 
-      {me?.role === 'owner' && sessionStatus === WALK_IN_PROGRESS && (
+      {me?.role === 'owner' && sessionStatus === WalkStatus.InProgress && (
         <div className="absolute bottom-0 w-full h-auto rounded-t-xl rounded-b-none bg-wsage p-5">
           <div className='grid items-center justify-center h-full w-full'>
             <img
@@ -531,7 +527,7 @@ export default function Track() {
       )}
 
 
-      {me?.role === 'owner' && sessionStatus === RATE_WALK && (
+      {me?.role === 'owner' && sessionStatus === WalkStatus.Rate && (
         <div className="absolute bottom-0 w-full h-auto rounded-t-xl rounded-b-none bg-wsage p-5">
           <div className='grid items-center justify-center h-full w-full'>
             <img
