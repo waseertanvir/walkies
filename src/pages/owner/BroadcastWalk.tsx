@@ -2,11 +2,10 @@ import { useLocation, useNavigate } from 'react-router';
 import '../App.css'
 import { ArrowLeft, X } from "lucide-react";
 import { useState, useEffect } from 'react';
-import { APIProvider, Map, Marker, AdvancedMarker } from '@vis.gl/react-google-maps';
-import { useDeviceState } from "../../DeviceStateContext";
 import { supabase } from '../../supabaseClient';
 import { Card, Button } from '../../components/ui';
 import { ChevronLeft } from 'lucide-react';
+import { WalkStatus } from '../../constants/WalkStatus';
 
 interface Pet {
     id: string;
@@ -16,7 +15,6 @@ interface Pet {
 }
 
 export default function RequestWalk() {
-    const { state, setSessionId } = useDeviceState();
     const location = useLocation();
     const navigate = useNavigate();
     const [pets, setPets] = useState<Pet[]>([]);
@@ -25,7 +23,6 @@ export default function RequestWalk() {
     const [myPosition, setMyPosition] = useState<{ lat: number; lng: number } | null>(null);
     const center = myPosition ?? { lat: 49.24, lng: -123.05 };
     const [mapCenter, setMapCenter] = useState(center);
-    const { setState } = useDeviceState();
     const [selectedPet, setSelectedPet] = useState<string>('');
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
@@ -69,7 +66,7 @@ export default function RequestWalk() {
                 .insert({
                     owner_id: user.id,
                     pet_id: selectedPet,
-                    status: 'pending',
+                    status: WalkStatus.Pending,
                     start_time: formattedDate,
                     duration_minutes: formData.duration_minutes,
                     compensation: formData.compensation,
@@ -79,12 +76,8 @@ export default function RequestWalk() {
                 })
                 .select('id');
 
-            /**
-             * TODO: Please make this dynamic. The above select call should return this data.
-             * Pass it down below to setSessionId.
-             */
             if (data) {
-                setSessionId('a15e751c-e733-4306-a9c5-42a328f6dd72')
+                navigate('/track/'+data.id);
             }
 
             if (error) {
@@ -92,10 +85,6 @@ export default function RequestWalk() {
                 alert('Error creating request: ' + error.message);
                 return;
             }
-
-            alert('Lets keep the dog leash ready we are finding walkers for you.');
-            setState("WAITING_FOR_WALKER")
-            navigate(-1);
         } catch (error) {
             console.error('Unexpected error:', error);
             alert('Unexpected error creating request');
