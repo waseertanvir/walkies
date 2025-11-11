@@ -85,7 +85,6 @@ export default function Track() {
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const center = useMemo<LatLng>(() => myPosition ?? { lat: 49.24, lng: -123.05 }, [myPosition]);
-  const { state, setState } = useDeviceState();
 
   useEffect(() => {
     (async () => {
@@ -214,36 +213,6 @@ export default function Track() {
 
     setSession({ ...session, status: WalkStatus.InProgress });
     setSessionStatus(WalkStatus.InProgress)
-    startInterval();
-  };
-
-  const startInterval = async () => {
-    if (intervalRef.current !== null) return;
-    intervalRef.current = window.setInterval(() => {
-      if (myPosition != null) {
-        console.log("Latitide: " + myPosition.lat + ", Longitude: " + myPosition.lng);
-
-        addPath(myPosition);
-
-        /**
-         * This whole function call can be replaced via a POST REST call.
-         */
-        supabase
-          .from('session_detail')
-          .insert({ session_id: sessionId, lat: myPosition.lat, long: myPosition.lng })
-          .then(({ data, error }) => {
-            if (error) {
-              console.error("Insert failed:", error);
-            } else {
-              console.log("Insert succeeded:", data);
-            }
-          });
-      }
-    }, 2000);
-  };
-
-  const addPath = (point: LatLng) => {
-    setPath(prev => [...prev, point]);
   };
 
   const stopInterval = () => {
@@ -255,10 +224,13 @@ export default function Track() {
 
   const endWalk = async () => {
     if (!session) return;
-    await supabase.from('sessions').update({ status: 'completed' }).eq('id', session.id);
-    setSession({ ...session, status: 'completed' });
+    
+    await supabase.from('sessions')
+      .update({ status: WalkStatus.Completed })
+      .eq('id', session.id);
+
+    setSession({ ...session, status: WalkStatus.Completed });
     setSessionStatus(WalkStatus.Completed);
-    stopInterval();
   };
 
   if (!isLoaded)
@@ -284,27 +256,39 @@ export default function Track() {
       console.log("Searching for walker:", data);
 
       if (data.walker_id != null) {
-        stopCheckingForWalkerRequests();
-        setState(WalkStatus.Accepted);
+        stopInterval();
+        setSessionStatus(WalkStatus.Accepted);
       }
 
     }, 2000);
 
   };
 
-  const handleAcceptedRequestNextButtonClick = () => {
-    setState(WalkStatus.InProgress);
+  const handleAcceptedRequestNextButtonClick = async () => {
+    console.log("Going to start checking if the walker has started walk.");
+
+    if (intervalRef.current !== null) return;
+    intervalRef.current = window.setInterval(async () => {
+
+      const { data, error } = await supabase.from('sessions')
+        .select('status')
+        .eq('id', sessionId)
+        .single();
+
+      if (data != null && data.status == WalkStatus.InProgress) {
+        setSessionStatus(WalkStatus.InProgress);
+        stopInterval()
+      }
+
+    }, 2000);
   }
 
-  const stopCheckingForWalkerRequests = () => {
-    if (intervalRef.current !== null) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-  };
-
-  if (state == WalkStatus.Pending) {
+  if (sessionStatus == WalkStatus.Pending) {
     startCheckingForWalkerRequests()
+  }
+
+  const handleSkipReviewButtonClick = () => {
+    navigate(-1);
   }
 
   return (
@@ -522,8 +506,7 @@ export default function Track() {
         </div>
       )}
 
-
-      {me?.role === 'owner' && sessionStatus === WalkStatus.Rate && (
+      {me?.role === 'owner' && sessionStatus === WalkStatus.Completed && (
         <div className="absolute bottom-0 w-full h-auto rounded-t-xl rounded-b-none bg-wsage p-5">
           <div className='grid items-center justify-center h-full w-full'>
             <img
@@ -574,6 +557,7 @@ export default function Track() {
               <button
                 className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-6 rounded-md"
                 type="button"
+                onClick={{handleSkipReviewButtonClick}}
               >
                 Skip
               </button>
