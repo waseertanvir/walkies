@@ -9,7 +9,7 @@ import { TrajectoryLine } from '../components/TrajectoryLine';
 import { useDeviceState } from "../DeviceStateContext";
 import logo from '../assets/Logo.png'
 import Loader from "../Loader";
-const WAITING_FOR_WALKER = 'waiting_for_walker';
+const WAITING_FOR_WALKER = 'pending';
 const WALKER_HAS_ACCEPTED = 'walker_has_accepted';
 const WALK_IN_PROGRESS = 'walk_in_progress';
 const WALK_COMPLETED = 'walk_completed';
@@ -117,7 +117,7 @@ export default function Track() {
       /**
        * TODO: This is one of the ways app is maintaining state. We need to find a single way to make use of state.
        */
-      setSessionStatus(WALK_IN_PROGRESS);
+      setSessionStatus(s.status);
       setIsLoaded(true);
     })();
   }, [navigate, sessionId]);
