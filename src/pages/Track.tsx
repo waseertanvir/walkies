@@ -85,7 +85,6 @@ export default function Track() {
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const center = useMemo<LatLng>(() => myPosition ?? { lat: 49.24, lng: -123.05 }, [myPosition]);
-  const { state, setState } = useDeviceState();
 
   useEffect(() => {
     (async () => {
@@ -285,7 +284,7 @@ export default function Track() {
 
       if (data.walker_id != null) {
         stopCheckingForWalkerRequests();
-        setState(WalkStatus.Accepted);
+        setSessionStatus(WalkStatus.Accepted);
       }
 
     }, 2000);
@@ -293,7 +292,7 @@ export default function Track() {
   };
 
   const handleAcceptedRequestNextButtonClick = () => {
-    setState(WalkStatus.InProgress);
+    setSessionStatus(WalkStatus.InProgress);
   }
 
   const stopCheckingForWalkerRequests = () => {
@@ -303,7 +302,7 @@ export default function Track() {
     }
   };
 
-  if (state == WalkStatus.Pending) {
+  if (sessionStatus == WalkStatus.Pending) {
     startCheckingForWalkerRequests()
   }
 
