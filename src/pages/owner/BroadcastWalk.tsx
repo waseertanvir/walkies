@@ -76,9 +76,15 @@ export default function RequestWalk() {
                 })
                 .select('id');
 
-            if (data) {
-                navigate('/track/'+data.id);
+            const insertedId = data?.[0]?.id;
+
+            if (!insertedId) {
+                console.warn('Insert succeeded but no id was returned.');
+                alert('Could not retrieve the new record id.');
+                return;
             }
+
+            navigate(`/track/${insertedId}`);
 
             if (error) {
                 console.error('Error creating request:', error);
