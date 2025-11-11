@@ -6,6 +6,7 @@ import { supabase } from '../../supabaseClient';
 import { Card, Button } from '../../components/ui';
 import { ChevronLeft } from 'lucide-react';
 import { WalkStatus } from '../../constants/WalkStatus';
+import { SessionType } from '../../constants/SessionType';
 
 interface Pet {
     id: string;
@@ -72,7 +73,8 @@ export default function RequestWalk() {
                     compensation: formData.compensation,
                     notes: formData.notes,
                     meeting_location: formData.meeting_location,
-                    special_instructions: formData.special_instructions
+                    special_instructions: formData.special_instructions,
+                    type: SessionType.Broadcast
                 })
                 .select('id');
 
