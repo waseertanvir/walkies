@@ -7,8 +7,6 @@ import OwnerMenu from '../../components/ownerMenu.tsx';
 import profileBanner from '../../assets/profile_banner.png';
 import '../App.css'
 import { useDeviceState } from "../../DeviceStateContext";
-import logo from '../../assets/Logo.png'
-import Loader from "../../Loader";
 
 export default function App() {
   const [myPosition, setMyPosition] = useState<{ lat: number; lng: number } | null>(null);
