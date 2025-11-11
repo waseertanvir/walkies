@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router';
 import { supabase } from '../supabaseClient';
 import ProtectedRoute from '../auth/ProtectedRoute';
 import { Card, Button, StatusPill } from '../components/ui';
+import { WalkStatus } from '../constants/WalkStatus';
+import { SessionType } from '../constants/SessionType';
 
 interface Request {
   id: string;
@@ -42,58 +44,58 @@ export default function BrowseRequests() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const fetchRequests = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          setCurrentUserId(user.id);
-        }
-
-        const { data } = await supabase
-          .from('sessions')
-          .select('*')
-          .eq('status', 'pending')
-          .order('created_at', { ascending: false });
-
-        console.log('BrowseRequests - Raw sessions data:', data);
-        console.log('BrowseRequests - Data length:', data?.length);
-        console.log('BrowseRequests - First session applications:', data?.[0]?.applications);
-        console.log('BrowseRequests - First session applications type:', typeof data?.[0]?.applications);
-        console.log('BrowseRequests - First session applications is array:', Array.isArray(data?.[0]?.applications));
-        setRequests(data || []);
-
-        // Fetch pets and owners data
-        if (data && data.length > 0) {
-          const petIds = data.map(request => request.pet_id);
-          const ownerIds = data.map(request => request.owner_id);
-
-          const { data: petsData } = await supabase
-            .from('pets')
-            .select('id, name, breed, description')
-            .in('id', petIds);
-
-          const { data: ownersData } = await supabase
-            .from('profiles')
-            .select('id, full_name')
-            .in('id', ownerIds);
-
-          const petsMap: Record<string, Pet> = {};
-          petsData?.forEach(pet => {
-            petsMap[pet.id] = pet;
-          });
-          setPets(petsMap);
-
-          const ownersMap: Record<string, OwnerProfile> = {};
-          ownersData?.forEach(owner => {
-            ownersMap[owner.id] = owner;
-          });
-          setOwners(ownersMap);
-        }
-      } catch (error) {
-        console.error('Error fetching requests:', error);
-      } finally {
-        setLoading(false);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setCurrentUserId(user.id);
       }
-    };
+
+      const { data } = await supabase
+        .from('sessions')
+        .select('*')
+        .eq('status', WalkStatus.Pending)
+        .order('created_at', { ascending: false });
+
+      console.log('BrowseRequests - Raw sessions data:', data);
+      console.log('BrowseRequests - Data length:', data?.length);
+      console.log('BrowseRequests - First session applications:', data?.[0]?.applications);
+      console.log('BrowseRequests - First session applications type:', typeof data?.[0]?.applications);
+      console.log('BrowseRequests - First session applications is array:', Array.isArray(data?.[0]?.applications));
+      setRequests(data || []);
+
+      // Fetch pets and owners data
+      if (data && data.length > 0) {
+        const petIds = data.map(request => request.pet_id);
+        const ownerIds = data.map(request => request.owner_id);
+
+        const { data: petsData } = await supabase
+          .from('pets')
+          .select('id, name, breed, description')
+          .in('id', petIds);
+
+        const { data: ownersData } = await supabase
+          .from('profiles')
+          .select('id, full_name')
+          .in('id', ownerIds);
+
+        const petsMap: Record<string, Pet> = {};
+        petsData?.forEach(pet => {
+          petsMap[pet.id] = pet;
+        });
+        setPets(petsMap);
+
+        const ownersMap: Record<string, OwnerProfile> = {};
+        ownersData?.forEach(owner => {
+          ownersMap[owner.id] = owner;
+        });
+        setOwners(ownersMap);
+      }
+    } catch (error) {
+      console.error('Error fetching requests:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchRequests();
@@ -108,7 +110,7 @@ export default function BrowseRequests() {
       // Get current session to check applications
       const { data: session } = await supabase
         .from('sessions')
-        .select('applications')
+        .select('applications, type')
         .eq('id', requestId)
         .single();
 
@@ -140,15 +142,23 @@ export default function BrowseRequests() {
       console.log('Updated applications:', updatedApplications);
       console.log('Updated applications JSON:', JSON.stringify(updatedApplications));
 
-      const { error } = await supabase
-        .from('sessions')
-        .update({
-          applications: updatedApplications
-        })
-        .eq('id', requestId);
-
-      console.log('Update error:', error);
-      console.log('Update successful, checking database...');
+      if (session.type == SessionType.Scheduled) {
+        const { error } = await supabase
+          .from('sessions')
+          .update({
+            applications: updatedApplications
+          })
+          .eq('id', requestId);
+      } else {
+        const { error } = await supabase
+          .from('sessions')
+          .update({
+            applications: updatedApplications,
+            status: WalkStatus.Accepted,
+            walker_id: user.id
+          })
+          .eq('id', requestId);
+      }
 
       // Verify the update by reading back from database
       const { data: verifyData, error: verifyError } = await supabase
@@ -162,12 +172,6 @@ export default function BrowseRequests() {
       console.log('Verification applications:', verifyData?.applications);
       console.log('Verification applications includes user?', verifyData?.applications?.includes(user.id));
 
-      if (error) {
-        console.error('Error applying to request:', error);
-        alert('Error applying to request: ' + error.message);
-        return;
-      }
-
       // Check if verification shows the update worked
       if (verifyData?.applications?.includes(user.id)) {
         console.log('✅ Application successfully added to database');
@@ -177,7 +181,7 @@ export default function BrowseRequests() {
         alert('Application may not have been saved. Please try again.');
         return;
       }
-      
+
       // Wait a moment for database to fully commit, then refresh
       setTimeout(() => {
         console.log('Refreshing data after delay...');
@@ -235,7 +239,7 @@ export default function BrowseRequests() {
                         </h3>
                         <StatusPill status={request.status} />
                       </div>
-                      
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div>
                           <p className="text-sm text-gray-600">
