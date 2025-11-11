@@ -285,7 +285,7 @@ export default function Track() {
 
       if (data.walker_id != null) {
         stopCheckingForWalkerRequests();
-        setState("WALKER_HAS_ACCEPTED");
+        setState(WalkStatus.Accepted);
       }
 
     }, 2000);
@@ -293,7 +293,7 @@ export default function Track() {
   };
 
   const handleAcceptedRequestNextButtonClick = () => {
-    setState("WALK_IN_PROGRESS");
+    setState(WalkStatus.InProgress);
   }
 
   const stopCheckingForWalkerRequests = () => {
@@ -317,18 +317,14 @@ export default function Track() {
           <div>Status: {session?.status}</div>
           <button
             onClick={startWalk}
-/*          The following buttons are temporarily enabled for testing. Please remove this comment before final testing. 
-            disabled={!canStart}
- */          className={`mt-2 px-3 py-1 rounded ${true ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-600'
+            className={`mt-2 px-3 py-1 rounded ${true ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-600'
               }`}
           >
             Start Walk
           </button>
           <button
             onClick={endWalk}
-/*        The following buttons are temporarily enabled for testing. Please remove this comment before final testing.  
-          disabled={!canEnd}
- */          className={`mt-2 px-3 py-1 rounded ${true ? 'bg-green-600 text-white' : 'bg-gray-300 text-gray-600'
+            className={`mt-2 px-3 py-1 rounded ${true ? 'bg-green-600 text-white' : 'bg-gray-300 text-gray-600'
               }`}
           >
             End Walk
