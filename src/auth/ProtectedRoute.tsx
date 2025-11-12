@@ -92,7 +92,6 @@ const ProtectedRoute = ({ children, fallback = <div>Loading...</div> }: Props) =
                 },
                 async (error) => {
                     console.error("Error watching location: ", error);
-                    // DELTE WHEN HOSTED TO TEST GPS!!!!!!!!!
                     if (error.code === error.POSITION_UNAVAILABLE) {
                         // Fallback: approximate by IP
                         const res = await fetch('https://ipapi.co/json/');

@@ -37,8 +37,6 @@ type SessionDetail = {
   created_at: string | null;
 }
 
-
-
 // calculating distances
 const toRad = (v: number) => (v * Math.PI) / 180;
 const haversine = (a: LatLng, b: LatLng) => {
@@ -52,7 +50,7 @@ const haversine = (a: LatLng, b: LatLng) => {
   const h = sinDLat ** 2 + Math.cos(la1) * Math.cos(la2) * sinDLng ** 2;
   return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
 };
-const within10m = (a?: LatLng | null, b?: LatLng | null) =>
+const within20m = (a?: LatLng | null, b?: LatLng | null) =>
   !!a && !!b && haversine(a, b) <= 20;
 
 // draw line logic
@@ -205,13 +203,13 @@ export default function Track() {
   const iAmWalker = me?.role === 'walker' && session?.walker_id === me.id;
 
   const canStart =
-    iAmWalker && session?.status === 'accepted' && within10m(ownerPos, walkerPos) && sessionStatus !== WalkStatus.InProgress;
+    iAmWalker && session?.status === 'accepted' && within20m(ownerPos, walkerPos) && sessionStatus !== WalkStatus.InProgress;
 
   const canEnd = (() => {
     if (!session || !iAmWalker || session.status !== WalkStatus.InProgress) return false;
     const end = new Date(session.start_time);
     end.setMinutes(end.getMinutes() + session.duration_minutes);
-    return within10m(ownerPos, walkerPos) && new Date() >= end;
+    return within20m(ownerPos, walkerPos) && new Date() >= end;
   })();
 
   const startWalk = async () => {

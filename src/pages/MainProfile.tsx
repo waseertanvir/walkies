@@ -148,11 +148,6 @@ export default function MainProfile() {
     }
   };
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate('/login');
-  };
-
   if (loading) return (
     <ProtectedRoute>
       <div className="min-h-screen bg-[#619B8A] flex items-center justify-center">
@@ -296,9 +291,6 @@ export default function MainProfile() {
             )}
             <Button onClick={handleSave} disabled={saving}>
               {saving ? 'Saving...' : 'Save'}
-            </Button>
-            <Button variant="danger" className="mt-2" onClick={handleSignOut}>
-              Sign Out
             </Button>
           </div>
         </div>
