@@ -37,6 +37,8 @@ type SessionDetail = {
   created_at: string | null;
 }
 
+
+
 // calculating distances
 const toRad = (v: number) => (v * Math.PI) / 180;
 const haversine = (a: LatLng, b: LatLng) => {
@@ -111,8 +113,11 @@ export default function Track() {
       setAvatarUrl(profile?.avatar_url ?? null);
 
       const { data: s } = await supabase.from('sessions').select('*').eq('id', sessionId).single();
-      if (!s) {
+      if (!s && me?.role=="walker") {
         navigate('/walker/dashboard');
+        return;
+      } else if (!s && me?.role=="owner") {
+        navigate('/owner/dashboard');
         return;
       }
 
@@ -283,7 +288,7 @@ export default function Track() {
 
       console.log("Searching for walker:", data);
 
-      if (data.walker_id != null) {
+      if (data?.walker_id != null) {
         stopInterval();
         setSessionStatus(WalkStatus.Accepted);
         startCheckingForWalkStart();

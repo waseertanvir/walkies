@@ -36,8 +36,10 @@ export default function App() {
 
   // on load effects
   useEffect(() => {
+    let channel: ReturnType<typeof supabase.channel>;
+
     //get user data
-    const fetchUser = async () => {
+    const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
@@ -45,23 +47,82 @@ export default function App() {
         .eq('id', user?.id)
         .single();
 
-      setUserID(user?.id ?? "");
-      setUserName(profile?.full_name)
-      setUserRole(profile?.role)
-
       if (profileError) {
         console.error('Error fetching profile:', profileError);
         return null;
       }
+      if (user && profile) {
+        setUserID(user.id);
+        setUserName(profile.full_name)
+        setUserRole(profile.role)
+      }
+
+      channel = supabase
+        .channel("liveLocations")
+        .on('broadcast', { event: "location" }, (payload) => {
+          console.log('received payload: ', payload.payload, '\n\n')
+          const tempUserLocation: UserLocation = {
+            userID: payload.payload.userID,
+            role: payload.payload.role,
+            name: payload.payload.name,
+            position: payload.payload.position,
+            timestamp: payload.payload.timestamp,
+          }
+          updateUserLocation(tempUserLocation)
+        })
+        .subscribe();
+
+      const sendLocation = async (updatedPosition: any) => {
+        //broadcast user position to realtime
+        await channel
+          .send({
+            type: "broadcast",
+            event: "location",
+            payload: {
+              userID: user?.id,
+              role: profile?.role,
+              name: profile?.full_name,
+              position: updatedPosition,
+              timestamp: new Date().toISOString(),
+            },
+          });
+      }
+      const watchId = navigator.geolocation.watchPosition(
+        (position) => {
+          // update user position
+          const newPosition = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          };
+          //set new user position
+          setMyPosition(newPosition);
+          //broadcast location
+          sendLocation(newPosition)
+        },
+        async (error) => {
+          console.error("Error watching location: ", error);
+          // DELTE WHEN HOSTED TO TEST GPS!!!!!!!!!
+          if (error.code === error.POSITION_UNAVAILABLE) {
+            // Fallback: approximate by IP
+            const res = await fetch('https://ipapi.co/json/');
+            const data = await res.json();
+            const newPosition = {
+              lat: data.latitude,
+              lng: data.longitude,
+            };
+            console.log('Broadcasting location using IP')
+            sendLocation(newPosition)
+          }
+        },
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+      );
     };
 
-    fetchUser();
+    init();
 
     const updateUserLocation = (updateLocation: UserLocation) => {
-      console.log(updateLocation)
       setUsers(prevUsers => {
         const index = prevUsers.findIndex(u => u.userID === updateLocation.userID);
-
         if (index !== -1) {
           // Update existing user
           const updatedUsers = [...prevUsers];
@@ -74,70 +135,8 @@ export default function App() {
       });
     };
 
-    const channel = supabase
-      .channel("liveLocations")
-      .on('broadcast', { event: "location" }, (payload) => {
-        console.log('received payload: ', payload.payload, '\n\n')
-        const tempUserLocation: UserLocation = {
-          userID: payload.payload.userID,
-          role: payload.payload.role,
-          name: payload.payload.name,
-          position: payload.payload.position,
-          timestamp: payload.payload.timestamp,
-        }
-        updateUserLocation(tempUserLocation)
-      })
-      .subscribe();
-
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setMyPosition({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          });
-        },
-        (error) => {
-          console.error("Error getting location: ", error);
-        }
-      );
-    }
-
-    const sendLocation = async (updatedPosition: any) => {
-      //broadcast user position to realtime
-      await supabase
-        .channel("liveLocations")
-        .send({
-          type: "broadcast",
-          event: "location",
-          payload: {
-            userID: userID,
-            role: userRole,
-            name: userName,
-            position: updatedPosition,
-            timestamp: new Date().toISOString(),
-          },
-        });
-    }
-    const watchId = navigator.geolocation.watchPosition(
-      (position) => {
-        // update user position
-        const newPosition = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude
-        };
-        setMyPosition(newPosition);
-        console.log("My broadcasted position: ", newPosition, '\n')
-        //broadcast location
-        sendLocation(newPosition)
-      },
-      (error) => {
-        console.error("Error watching location: ", error);
-      },
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
-    );
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) supabase.removeChannel(channel);
     };
   }, []);
 
@@ -176,7 +175,7 @@ export default function App() {
     {
       userID: '1',
       role: 'Walker',
-      name: 'guy1',
+      name: 'Dev Uppin',
       position: { lat: 49.245, lng: -123.05 },
       timestamp: new Date(),
     },
@@ -302,7 +301,7 @@ export default function App() {
               Schedule
             </button>
           </div>
-        </div>        
+        </div>
       </APIProvider>
     </ProtectedRoute>
   );

@@ -72,7 +72,7 @@ export default function WalkerProfile() {
             Back
           </button>
           {/* <button className="back-btn" onClick={() => setShowRequestWalkPage(true)}> */}
-          <button className="back-btn" onClick={() => navigate(`/owner/schedule/${user.id}`)}>
+          <button className="back-btn" onClick={() => navigate(`/owner/schedule/${user.userID}`)}>
             Request Walk
           </button>
         </div>
