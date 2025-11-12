@@ -6,7 +6,6 @@ import { useNavigate, useParams } from 'react-router';
 import OwnerMenu from '../components/ownerMenu';
 import WalkerMenu from '../components/walkerMenu';
 import { TrajectoryLine } from '../components/TrajectoryLine';
-import { useDeviceState } from "../DeviceStateContext";
 import logo from '../assets/Logo.png'
 import Loader from "../Loader";
 import { WalkStatus } from '../constants/WalkStatus';
@@ -30,6 +29,13 @@ type Session = {
   start_time: string;
   duration_minutes: number;
 };
+
+type SessionDetail = {
+  session_id: string | undefined;
+  lat: number;
+  long: number;
+  created_at: string | null;
+}
 
 // calculating distances
 const toRad = (v: number) => (v * Math.PI) / 180;
@@ -111,9 +117,6 @@ export default function Track() {
       }
 
       setSession(s);
-      /**
-       * TODO: This is one of the ways app is maintaining state. We need to find a single way to make use of state.
-       */
       setSessionStatus(s.status);
       setIsLoaded(true);
     })();
@@ -226,10 +229,33 @@ export default function Track() {
 
   const endWalk = async () => {
     if (!session) return;
-    
+
     await supabase.from('sessions')
-      .update({ status: WalkStatus.Completed })
+      .update({
+        status: WalkStatus.Completed
+      })
       .eq('id', session.id);
+
+
+    const result: SessionDetail[] = [];
+
+    for (let i = 0; i < path.length; i++) {
+      const { lat, lng } = path[i];
+      result.push({
+        session_id: sessionId,
+        lat: lat,
+        long: lng,
+        created_at: new Date().toISOString()
+      });
+    }
+
+    const { error } = await supabase.from('session_detail')
+      .insert(result)
+      .eq('id', session.id);
+
+    console.log("Going to persist data in session_detail: "+result);
+
+    if (error) console.error('Insert failed:', error);
 
     setSession({ ...session, status: WalkStatus.Completed });
     setSessionStatus(WalkStatus.Completed);
@@ -260,13 +286,14 @@ export default function Track() {
       if (data.walker_id != null) {
         stopInterval();
         setSessionStatus(WalkStatus.Accepted);
+        startCheckingForWalkStart();
       }
 
     }, 2000);
 
   };
 
-  const handleAcceptedRequestNextButtonClick = async () => {
+  const startCheckingForWalkStart = async () => {
     console.log("Going to start checking if the walker has started walk.");
 
     if (intervalRef.current !== null) return;
@@ -280,6 +307,26 @@ export default function Track() {
       if (data != null && data.status == WalkStatus.InProgress) {
         setSessionStatus(WalkStatus.InProgress);
         stopInterval()
+        startCheckingForWalkEnd();
+      }
+
+    }, 2000);
+  }
+
+  const startCheckingForWalkEnd = async () => {
+    console.log("Going to start checking for walk end.");
+
+    if (intervalRef.current !== null) return;
+    intervalRef.current = window.setInterval(async () => {
+
+      const { data, error } = await supabase.from('sessions')
+        .select('status')
+        .eq('id', sessionId)
+        .single();
+
+      if (data != null && data.status == WalkStatus.Completed) {
+        setSessionStatus(WalkStatus.Completed);
+        stopInterval()
       }
 
     }, 2000);
@@ -290,7 +337,7 @@ export default function Track() {
   }
 
   const handleSkipReviewButtonClick = () => {
-    navigate(-1);
+    navigate('/owner/dashboard');
   }
 
   return (
@@ -303,14 +350,14 @@ export default function Track() {
           <div>Status: {session?.status}</div>
           <button
             onClick={startWalk}
-            className={`mt-2 px-3 py-1 rounded ${true ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-600'
+            className={`mt-2 px-3 py-1 rounded ${canStart == true ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-600'
               }`}
           >
             Start Walk
           </button>
           <button
             onClick={endWalk}
-            className={`mt-2 px-3 py-1 rounded ${true ? 'bg-green-600 text-white' : 'bg-gray-300 text-gray-600'
+            className={`mt-2 px-3 py-1 rounded ${canEnd == true ? 'bg-green-600 text-white' : 'bg-gray-300 text-gray-600'
               }`}
           >
             End Walk
@@ -455,14 +502,13 @@ export default function Track() {
             </p>
 
             <div className="relative w-full -top-5 text-center">
-              <p className="text-3xl text-white">Walk Accepted</p>
+              <p className="text-3xl text-white">ETA: anytime soon</p>
             </div>
 
-            <button
-              className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-md text-center"
-              onClick={handleAcceptedRequestNextButtonClick}>
-              Next
-            </button>
+            <div
+              className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-md text-center">
+              Accepted
+            </div>
           </div>
         </div>
       )}
@@ -579,7 +625,7 @@ export default function Track() {
               <button
                 className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-6 rounded-md"
                 type="button"
-                onClick={{handleSkipReviewButtonClick}}
+                onClick={handleSkipReviewButtonClick}
               >
                 Skip
               </button>
