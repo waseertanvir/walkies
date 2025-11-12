@@ -284,13 +284,14 @@ export default function Track() {
       if (data.walker_id != null) {
         stopInterval();
         setSessionStatus(WalkStatus.Accepted);
+        startCheckingForWalkStart();
       }
 
     }, 2000);
 
   };
 
-  const handleAcceptedRequestNextButtonClick = async () => {
+  const startCheckingForWalkStart = async () => {
     console.log("Going to start checking if the walker has started walk.");
 
     if (intervalRef.current !== null) return;
@@ -475,14 +476,13 @@ export default function Track() {
             </p>
 
             <div className="relative w-full -top-5 text-center">
-              <p className="text-3xl text-white">Walk Accepted</p>
+              <p className="text-3xl text-white">ETA: anytime soon</p>
             </div>
 
-            <button
-              className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-md text-center"
-              onClick={handleAcceptedRequestNextButtonClick}>
-              Next
-            </button>
+            <div
+              className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-md text-center">
+              Accepted
+            </div>
           </div>
         </div>
       )}
