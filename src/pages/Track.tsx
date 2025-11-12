@@ -82,6 +82,7 @@ export default function Track() {
   const [sessionStatus, setSessionStatus] = useState<string>();
   const [isLoaded, setIsLoaded] = useState(false);
   const intervalRef = useRef<number | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const center = useMemo<LatLng>(() => myPosition ?? { lat: 49.24, lng: -123.05 }, [myPosition]);
@@ -96,11 +97,12 @@ export default function Track() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('full_name, role')
+        .select('full_name, role, avatar_url')
         .eq('id', user.id)
         .single();
 
       setMe({ id: user.id, name: profile?.full_name ?? '', role: profile?.role ?? '' });
+      setAvatarUrl(profile?.avatar_url ?? null);
 
       const { data: s } = await supabase.from('sessions').select('*').eq('id', sessionId).single();
       if (!s) {
@@ -374,18 +376,14 @@ export default function Track() {
       {me?.role === 'owner' && sessionStatus === WalkStatus.Pending && (
         <div className="absolute bottom-0 w-full h-25% rounded-t-xl rounded-b-none bg-wsage p-5">
           <div className='grid items-center justify-center h-full w-full'>
-            <img
-              className="
-                relative
-                left-1/2
-                -top-20
-                transform -translate-x-1/2
-                max-w-[125px] max-h-[125px] w-full h-auto
-                rounded-full border-4 border-yellow-400 object-cover
-                "
-              src="https://m.gettywallpapers.com/wp-content/uploads/2023/09/Grand-Theft-Auto-5-Profile-Picture.jpg"
-              alt="Franklin with Chop."
-            />
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={me?.name ?? 'Profile'} className="relative left-1/2 -top-20 transform -translate-x-1/2 max-w-[125px] max-h-[125px] w-full h-auto
+                rounded-full border-4 border-yellow-400 object-cover"/>
+              ) : (
+              <span className="text-white text-xl absolute left-1/2 -translate-x-1/2 -top-16">
+                No Image
+              </span>
+            )}
 
             <img
               src={logo}
@@ -418,7 +416,7 @@ export default function Track() {
       {me?.role === 'owner' && sessionStatus === WalkStatus.Accepted && (
         <div className="absolute bottom-0 w-full h-auto rounded-t-xl rounded-b-none bg-wsage p-5">
           <div className='grid items-center justify-center h-full w-full'>
-            <img
+            {/* <img
               className="
                 relative
                 left-1/2
@@ -429,7 +427,15 @@ export default function Track() {
                 "
               src="https://m.gettywallpapers.com/wp-content/uploads/2023/09/Grand-Theft-Auto-5-Profile-Picture.jpg"
               alt="Franklin with Chop."
-            />
+            /> */}
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={me?.name ?? 'Profile'} className="relative left-1/2 -top-20 transform -translate-x-1/2 max-w-[125px] max-h-[125px] w-full h-auto
+                rounded-full border-4 border-yellow-400 object-cover"/>
+              ) : (
+              <span className="text-white text-xl absolute left-1/2 -translate-x-1/2 -top-16">
+                No Image
+              </span>
+            )}
 
             <img
               src={logo}
@@ -465,7 +471,7 @@ export default function Track() {
       {me?.role === 'owner' && sessionStatus === WalkStatus.InProgress && (
         <div className="absolute bottom-0 w-full h-auto rounded-t-xl rounded-b-none bg-wsage p-5">
           <div className='grid items-center justify-center h-full w-full'>
-            <img
+            {/* <img
               className="
                 relative
                 left-1/2
@@ -476,7 +482,15 @@ export default function Track() {
                 "
               src="https://m.gettywallpapers.com/wp-content/uploads/2023/09/Grand-Theft-Auto-5-Profile-Picture.jpg"
               alt="Franklin with Chop."
-            />
+            /> */}
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={me?.name ?? 'Profile'} className="relative left-1/2 -top-20 transform -translate-x-1/2 max-w-[125px] max-h-[125px] w-full h-auto
+                rounded-full border-4 border-yellow-400 object-cover"/>
+              ) : (
+              <span className="text-white text-xl absolute left-1/2 -translate-x-1/2 -top-16">
+                No Image
+              </span>
+            )}
 
             <img
               src={logo}
@@ -509,7 +523,7 @@ export default function Track() {
       {me?.role === 'owner' && sessionStatus === WalkStatus.Completed && (
         <div className="absolute bottom-0 w-full h-auto rounded-t-xl rounded-b-none bg-wsage p-5">
           <div className='grid items-center justify-center h-full w-full'>
-            <img
+            {/* <img
               className="
                 relative
                 left-1/2
@@ -520,7 +534,15 @@ export default function Track() {
                 "
               src="https://m.gettywallpapers.com/wp-content/uploads/2023/09/Grand-Theft-Auto-5-Profile-Picture.jpg"
               alt="Franklin with Chop."
-            />
+            /> */}
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={me?.name ?? 'Profile'} className="relative left-1/2 -top-20 transform -translate-x-1/2 max-w-[125px] max-h-[125px] w-full h-auto
+                rounded-full border-4 border-yellow-400 object-cover"/>
+              ) : (
+              <span className="text-white text-xl absolute left-1/2 -translate-x-1/2 -top-16">
+                No Image
+              </span>
+            )}
 
             <img
               src={logo}
