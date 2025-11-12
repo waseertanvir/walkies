@@ -108,13 +108,24 @@ export default function Track() {
         .single();
 
       setMe({ id: user.id, name: profile?.full_name ?? '', role: profile?.role ?? '' });
-      setAvatarUrl(profile?.avatar_url ?? null);
+
+      if (profile?.role === 'walker') {
+        const { data } = await supabase
+          .from('profiles')
+          .select('full_name, role, avatar_url')
+          .eq('id', session?.owner_id)
+          .single();
+
+        setAvatarUrl(data?.avatar_url ?? null);
+      } else {
+        setAvatarUrl(profile?.avatar_url ?? null);
+      }
 
       const { data: s } = await supabase.from('sessions').select('*').eq('id', sessionId).single();
-      if (!s && me?.role=="walker") {
+      if (!s && me?.role == "walker") {
         navigate('/walker/dashboard');
         return;
-      } else if (!s && me?.role=="owner") {
+      } else if (!s && me?.role == "owner") {
         navigate('/owner/dashboard');
         return;
       }
@@ -256,7 +267,7 @@ export default function Track() {
       .insert(result)
       .eq('id', session.id);
 
-    console.log("Going to persist data in session_detail: "+result);
+    console.log("Going to persist data in session_detail: " + result);
 
     if (error) console.error('Insert failed:', error);
 
@@ -348,26 +359,6 @@ export default function Track() {
       {me?.role === 'owner' && <OwnerMenu />}
       {me?.role === 'walker' && <WalkerMenu />}
 
-      {me?.role === 'walker' &&
-        <div className="absolute top-3 right-3 z-10 bg-white p-3 rounded-lg shadow">
-          <div>Status: {session?.status}</div>
-          <button
-            onClick={startWalk}
-            className={`mt-2 px-3 py-1 rounded ${canStart == true ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-600'
-              }`}
-          >
-            Start Walk
-          </button>
-          <button
-            onClick={endWalk}
-            className={`mt-2 px-3 py-1 rounded ${canEnd == true ? 'bg-green-600 text-white' : 'bg-gray-300 text-gray-600'
-              }`}
-          >
-            End Walk
-          </button>
-        </div>
-      }
-
       <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}>
         <Map
           mapId={import.meta.env.VITE_GOOGLE_MAP_ID}
@@ -423,13 +414,70 @@ export default function Track() {
         </Map>
       </APIProvider>
 
+
+      {me?.role === 'walker' && (
+        <div className="absolute bottom-0 w-full h-25% rounded-t-xl rounded-b-none bg-wsage p-5">
+          <div className='grid items-center justify-center h-full w-full'>
+            <button
+                onClick={startWalk}
+                className={`absolute mt-2 px-3 py-1 rounded ${canStart == true ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-600'
+                  }`}
+              >
+                Start Walk
+              </button>
+              
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={me?.name ?? 'Profile'}
+                className="relative left-1/2 -top-20 transform -translate-x-1/2 max-w-[125px] max-h-[125px] w-full h-auto
+                rounded-full border-4 border-yellow-400 object-cover"/>
+            ) : (
+              <span className="text-white text-xl absolute left-1/2 -translate-x-1/2 -top-16">
+                No Image
+              </span>
+            )}
+
+            <img
+              src={logo}
+              alt="Logo"
+              className="
+                absolute          
+                top-0 right-0     
+                m-5     
+                max-h-10         
+                max-w-10      
+                h-auto
+                "
+            />
+
+            <p className="absolute inset-x-0 top-20 text-center text-yellow-500 font-bold text-1xl">
+              Franklin
+            </p>
+
+          {/*   {   <div className="relative top-3 right-3 z-10 bg-white p-3 rounded-lg shadow">
+              <div>Status: {session?.status}</div>
+              
+              <button
+                onClick={endWalk}
+                className={`mt-2 px-3 py-1 rounded ${canEnd == true ? 'bg-green-600 text-white' : 'bg-gray-300 text-gray-600'
+                  }`}>
+                End Walk
+              </button>
+            </div> }
+ */}
+            <div className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-md text-center">
+              ??
+            </div>
+          </div>
+        </div>
+      )}
+
       {me?.role === 'owner' && sessionStatus === WalkStatus.Pending && (
         <div className="absolute bottom-0 w-full h-25% rounded-t-xl rounded-b-none bg-wsage p-5">
           <div className='grid items-center justify-center h-full w-full'>
             {avatarUrl ? (
               <img src={avatarUrl} alt={me?.name ?? 'Profile'} className="relative left-1/2 -top-20 transform -translate-x-1/2 max-w-[125px] max-h-[125px] w-full h-auto
                 rounded-full border-4 border-yellow-400 object-cover"/>
-              ) : (
+            ) : (
               <span className="text-white text-xl absolute left-1/2 -translate-x-1/2 -top-16">
                 No Image
               </span>
@@ -466,22 +514,10 @@ export default function Track() {
       {me?.role === 'owner' && sessionStatus === WalkStatus.Accepted && (
         <div className="absolute bottom-0 w-full h-auto rounded-t-xl rounded-b-none bg-wsage p-5">
           <div className='grid items-center justify-center h-full w-full'>
-            {/* <img
-              className="
-                relative
-                left-1/2
-                -top-20
-                transform -translate-x-1/2
-                max-w-[125px] max-h-[125px] w-full h-auto
-                rounded-full border-4 border-yellow-400 object-cover
-                "
-              src="https://m.gettywallpapers.com/wp-content/uploads/2023/09/Grand-Theft-Auto-5-Profile-Picture.jpg"
-              alt="Franklin with Chop."
-            /> */}
             {avatarUrl ? (
               <img src={avatarUrl} alt={me?.name ?? 'Profile'} className="relative left-1/2 -top-20 transform -translate-x-1/2 max-w-[125px] max-h-[125px] w-full h-auto
                 rounded-full border-4 border-yellow-400 object-cover"/>
-              ) : (
+            ) : (
               <span className="text-white text-xl absolute left-1/2 -translate-x-1/2 -top-16">
                 No Image
               </span>
@@ -520,22 +556,10 @@ export default function Track() {
       {me?.role === 'owner' && sessionStatus === WalkStatus.InProgress && (
         <div className="absolute bottom-0 w-full h-auto rounded-t-xl rounded-b-none bg-wsage p-5">
           <div className='grid items-center justify-center h-full w-full'>
-            {/* <img
-              className="
-                relative
-                left-1/2
-                -top-20
-                transform -translate-x-1/2
-                max-w-[125px] max-h-[125px] w-full h-auto
-                rounded-full border-4 border-yellow-400 object-cover
-                "
-              src="https://m.gettywallpapers.com/wp-content/uploads/2023/09/Grand-Theft-Auto-5-Profile-Picture.jpg"
-              alt="Franklin with Chop."
-            /> */}
             {avatarUrl ? (
               <img src={avatarUrl} alt={me?.name ?? 'Profile'} className="relative left-1/2 -top-20 transform -translate-x-1/2 max-w-[125px] max-h-[125px] w-full h-auto
                 rounded-full border-4 border-yellow-400 object-cover"/>
-              ) : (
+            ) : (
               <span className="text-white text-xl absolute left-1/2 -translate-x-1/2 -top-16">
                 No Image
               </span>
@@ -572,22 +596,10 @@ export default function Track() {
       {me?.role === 'owner' && sessionStatus === WalkStatus.Completed && (
         <div className="absolute bottom-0 w-full h-auto rounded-t-xl rounded-b-none bg-wsage p-5">
           <div className='grid items-center justify-center h-full w-full'>
-            {/* <img
-              className="
-                relative
-                left-1/2
-                -top-20
-                transform -translate-x-1/2
-                max-w-[125px] max-h-[125px] w-full h-auto
-                rounded-full border-4 border-yellow-400 object-cover
-                "
-              src="https://m.gettywallpapers.com/wp-content/uploads/2023/09/Grand-Theft-Auto-5-Profile-Picture.jpg"
-              alt="Franklin with Chop."
-            /> */}
             {avatarUrl ? (
               <img src={avatarUrl} alt={me?.name ?? 'Profile'} className="relative left-1/2 -top-20 transform -translate-x-1/2 max-w-[125px] max-h-[125px] w-full h-auto
                 rounded-full border-4 border-yellow-400 object-cover"/>
-              ) : (
+            ) : (
               <span className="text-white text-xl absolute left-1/2 -translate-x-1/2 -top-16">
                 No Image
               </span>
