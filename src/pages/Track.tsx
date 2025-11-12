@@ -348,14 +348,14 @@ export default function Track() {
           <div>Status: {session?.status}</div>
           <button
             onClick={startWalk}
-            className={`mt-2 px-3 py-1 rounded ${true ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-600'
+            className={`mt-2 px-3 py-1 rounded ${canStart == true ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-600'
               }`}
           >
             Start Walk
           </button>
           <button
             onClick={endWalk}
-            className={`mt-2 px-3 py-1 rounded ${true ? 'bg-green-600 text-white' : 'bg-gray-300 text-gray-600'
+            className={`mt-2 px-3 py-1 rounded ${canEnd == true ? 'bg-green-600 text-white' : 'bg-gray-300 text-gray-600'
               }`}
           >
             End Walk
