@@ -305,6 +305,26 @@ export default function Track() {
       if (data != null && data.status == WalkStatus.InProgress) {
         setSessionStatus(WalkStatus.InProgress);
         stopInterval()
+        startCheckingForWalkEnd();
+      }
+
+    }, 2000);
+  }
+
+  const startCheckingForWalkEnd = async () => {
+    console.log("Going to start checking for walk end.");
+
+    if (intervalRef.current !== null) return;
+    intervalRef.current = window.setInterval(async () => {
+
+      const { data, error } = await supabase.from('sessions')
+        .select('status')
+        .eq('id', sessionId)
+        .single();
+
+      if (data != null && data.status == WalkStatus.Completed) {
+        setSessionStatus(WalkStatus.Completed);
+        stopInterval()
       }
 
     }, 2000);
