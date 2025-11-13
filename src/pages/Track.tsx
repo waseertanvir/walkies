@@ -455,17 +455,6 @@ export default function Track() {
               Franklin
             </p>
 
-            {/*   {   <div className="relative top-3 right-3 z-10 bg-white p-3 rounded-lg shadow">
-              <div>Status: {session?.status}</div>
-              
-              <button
-                onClick={endWalk}
-                className={`mt-2 px-3 py-1 rounded ${canEnd == true ? 'bg-green-600 text-white' : 'bg-gray-300 text-gray-600'
-                  }`}>
-                End Walk
-              </button>
-            </div> }
- */}
             <div className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-md text-center">
               ??
             </div>
@@ -649,7 +638,6 @@ export default function Track() {
               </input>
             </div>
 
-            {/* Flex container that holds both buttons */}
             <div className="flex gap-4 justify-center mt-5">
               <button
                 className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-6 rounded-md"
