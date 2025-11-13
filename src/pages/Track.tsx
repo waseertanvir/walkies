@@ -252,7 +252,7 @@ export default function Track() {
 
     await supabase.from('sessions')
       .update({
-        status: WalkStatus.Completed
+        status: WalkStatus.Rate
       })
       .eq('id', session.id);
 
@@ -277,8 +277,8 @@ export default function Track() {
 
     if (error) console.error('Insert failed:', error);
 
-    setSession({ ...session, status: WalkStatus.Completed });
-    setSessionStatus(WalkStatus.Completed);
+    setSession({ ...session, status: WalkStatus.Rate });
+    setSessionStatus(WalkStatus.Rate);
   };
 
   if (!isLoaded)
@@ -388,6 +388,12 @@ export default function Track() {
         return;
       }
 
+      await supabase.from('sessions')
+        .update({
+          status: WalkStatus.Completed
+        })
+        .eq('id', session.id);
+
       navigate('/owner/dashboard');
 
       if (error) {
@@ -471,6 +477,14 @@ export default function Track() {
                 }`}
             >
               Start Walk
+            </button>
+
+            <button
+              onClick={endWalk}
+              className={`absolute mt-2 px-3 py-1 rounded ${canEnd == true ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-600'
+                }`}
+            >
+              End Walk
             </button>
 
             {avatarUrl ? (
@@ -629,7 +643,7 @@ export default function Track() {
         </div>
       )}
 
-      {me?.role === 'owner' && sessionStatus === WalkStatus.Completed && (
+      {me?.role === 'owner' && sessionStatus === WalkStatus.Rate && (
         <div className="absolute bottom-0 w-full h-auto rounded-t-xl rounded-b-none bg-wsage p-5">
           <div className='grid items-center justify-center h-full w-full'>
             {avatarUrl ? (
