@@ -471,21 +471,23 @@ export default function Track() {
       {me?.role === 'walker' && (
         <div className="absolute bottom-0 w-full h-25% rounded-t-xl rounded-b-none bg-wsage p-5">
           <div className='grid items-center justify-center h-full w-full'>
-            <button
-              onClick={startWalk}
-              className={`absolute mt-2 px-3 py-1 rounded ${canStart == true ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-600'
-                }`}
-            >
-              Start Walk
-            </button>
+            <div className="absolute flex gap-2">
+              <button
+                onClick={startWalk}
+                className={`px-3 py-1 rounded ${true ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-600'
+                  }`}
+              >
+                Start Walk
+              </button>
 
-            <button
-              onClick={endWalk}
-              className={`absolute mt-2 px-3 py-1 rounded ${canEnd == true ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-600'
-                }`}
-            >
-              End Walk
-            </button>
+              <button
+                onClick={endWalk}
+                className={`px-3 py-1 rounded ${true ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-600'
+                  }`}
+              >
+                End Walk
+              </button>
+            </div>
 
             {avatarUrl ? (
               <img src={avatarUrl} alt={me?.name ?? 'Profile'}
