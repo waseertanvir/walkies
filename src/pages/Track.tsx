@@ -94,6 +94,10 @@ export default function Track() {
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const center = useMemo<LatLng>(() => myPosition ?? { lat: 49.24, lng: -123.05 }, [myPosition]);
   const [rating, setRating] = useState(0)
+  const [ratingsFormData, setRatingsFormData] = useState({
+    rating: 0,
+    description: ''
+  });
 
   useEffect(() => {
     (async () => {
@@ -354,6 +358,47 @@ export default function Track() {
 
   const handleSkipReviewButtonClick = () => {
     navigate('/owner/dashboard');
+  }
+
+  const handleRatingFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const now = new Date(Date.now());
+      const formattedDate = now.toISOString().slice(0, 16);
+
+      const { data, error } = await supabase
+        .from('walk_review')
+        .insert({
+          session_id: sessionId,
+          created_at: formattedDate,
+          rating: 0,
+          description: ''
+        })
+        .select('session_id');
+
+      const insertedId = data?.[0]?.session_id;
+
+      if (!insertedId) {
+        console.warn('Insert succeeded but no id was returned.');
+        alert('Could not retrieve the new record id.');
+        return;
+      }
+
+      navigate('/owner/dashboard');
+
+      if (error) {
+        console.error('Error creating request:', error);
+        alert('Error creating request: ' + error.message);
+        return;
+      }
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      alert('Unexpected error creating request');
+    }
   }
 
   return (
@@ -625,36 +670,44 @@ export default function Track() {
               <p className="text-1xl text-white">Please provide us with a rating.</p>
             </div>
 
-            <div className="flex gap-4 justify-center mb-5">
-              <Rating
-                style={{ maxWidth: 180 }}
-                value={rating}
-                onChange={setRating}
-              />
-            </div>
+            <form onSubmit={handleRatingFormSubmit}>
 
-            <div className='relative w-full h-auto border border-white-300'>
-              <input className='text-white w-75 h-50 text-center' type='text' placeholder='Enter your review here.'>
-              </input>
-            </div>
+              <div className="flex gap-4 justify-center mb-5">
+                <Rating
+                  style={{ maxWidth: 180 }}
+                  value={rating}
+                  onChange={(value: number) => {
+                    setRatingsFormData(prev => ({ ...prev, rating: value }));
+                    setRating(value);
+                  }
+                  }
+                />
+              </div>
 
-            <div className="flex gap-4 justify-center mt-5">
-              <button
-                className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-6 rounded-md"
-                type="button"
-                onClick={handleSkipReviewButtonClick}
-              >
-                Skip
-              </button>
+              <div className='relative w-full h-auto border border-white-300'>
+                <input className='text-white w-75 h-50 text-center'
+                  type='text'
+                  placeholder='Enter your review here.'
+                  onChange={(e) => setRatingsFormData(prev => ({ ...prev, description: e.target.value }))}>
+                </input>
+              </div>
 
-              <button
-                className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-6 rounded-md"
-                type="submit"
-              >
-                Submit
-              </button>
-            </div>
+              <div className="flex gap-4 justify-center mt-5">
+                <button
+                  className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-6 rounded-md"
+                  type="button"
+                  onClick={handleSkipReviewButtonClick}
+                >
+                  Skip
+                </button>
 
+                <button
+                  className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-6 rounded-md"
+                  type="submit">
+                  Submit
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
