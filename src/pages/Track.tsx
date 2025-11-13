@@ -344,8 +344,8 @@ export default function Track() {
         .eq('id', sessionId)
         .single();
 
-      if (data != null && data.status == WalkStatus.Completed) {
-        setSessionStatus(WalkStatus.Completed);
+      if (data != null && data.status == WalkStatus.Rate) {
+        setSessionStatus(WalkStatus.Rate);
         stopInterval()
       }
 
