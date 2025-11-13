@@ -392,7 +392,7 @@ export default function Track() {
         .update({
           status: WalkStatus.Completed
         })
-        .eq('id', session.id);
+        .eq('id', sessionId);
 
       navigate('/owner/dashboard');
 
