@@ -5,6 +5,7 @@ import { useState, useRef, useEffect } from 'react';
 import { APIProvider, Map, AdvancedMarker, useMapsLibrary } from '@vis.gl/react-google-maps';
 import { useDeviceState } from "../../DeviceStateContext";
 import { supabase } from '../../supabaseClient';
+import { ChevronLeft } from 'lucide-react';
 
 export default function ScheduleWalk() {
     return (
@@ -172,11 +173,27 @@ function ScheduleWalkContent() {
     return (
         <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}>
             <div>
-                <button
-                    className="bg-wolive text-black p-2 m-5 w-11.5 rounded-full"
+                {/* <button
+                    className="fixed top-4 left-4 z-50 bg-wolive text-black p-2 rounded-full shadow-lg hover:bg-green-600 transition"
                     onClick={() => navigate(-1)}>
                     <ArrowLeft size={30} />
                 </button>
+                <div className="flex justify-center mb-12">
+                    <h1 className="text-2xl font-bold text-white text-center mt-2">Schedule Walk</h1>
+                </div> */}
+
+                <div className="relative mb-12">
+                    <button
+                        onClick={() => navigate(-1)}
+                        className="fixed top-4 left-4 z-50 bg-wolive text-black p-2 rounded-full shadow-lg hover:bg-green-600 transition"
+            >
+                        <ChevronLeft size={30} />
+                    </button>
+            {/* <h1 className="text-2xl font-bold text-white ">My Sessions</h1> */}
+                    <div className="flex justify-center">
+                        <h1 className="text-2xl font-bold text-white text-center mt-2">Schedule A Walk</h1>
+                    </div>
+            </div>
 
                 <div className='flex items-center m-5'>
                     <select

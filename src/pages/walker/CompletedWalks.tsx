@@ -36,7 +36,7 @@ export default function CompletedWalks() {
         <div className="absolute top-4 left-4 z-50">
           <button
             onClick={() => navigate(-1)}
-            className="bg-wolive text-black p-2 rounded-full shadow-lg hover:bg-green-600 transition-colors"
+            className="fixed top-4 left-4 z-50 bg-wolive text-black p-2 rounded-full shadow-lg hover:bg-green-600 transition"
           >
             <ChevronLeft size={30} />
           </button>

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import { supabase } from '../supabaseClient';
 import ProtectedRoute from '../auth/ProtectedRoute';
 import { Card, Button, StatusPill } from '../components/ui';
+import { ChevronLeft } from 'lucide-react';
 
 interface Session {
   id: string;
@@ -16,7 +17,9 @@ interface Session {
   applications: string[];
   walker_id: string | null;
   pet_id: string;
+  owner_id: string;
   created_at: string;
+  type: string;
 }
 
 interface Pet {
@@ -143,11 +146,20 @@ export default function MySessions() {
     <ProtectedRoute>
       <div className="min-h-screen bg-wblue p-4">
         <div className="max-w-4xl mx-auto">
-          <div className="flex items-center mb-6">
-            <Button variant="secondary" onClick={() => navigate('/')} className="mr-4">
+          <div className="relative mb-6">
+            {/* <Button variant="secondary" onClick={() => navigate('/')} className="mr-4">
               ← Back to Dashboard
-            </Button>
-            <h1 className="text-2xl font-bold text-white">My Sessions</h1>
+            </Button> */}
+            <button
+              onClick={() => navigate(-1)}
+              className="fixed top-4 left-4 z-50 bg-wolive text-black p-2 rounded-full shadow-lg hover:bg-green-600 transition"
+            >
+              <ChevronLeft size={30} />
+            </button>
+            {/* <h1 className="text-2xl font-bold text-white ">My Sessions</h1> */}
+            <div className="flex justify-center">
+              <h1 className="text-2xl font-bold text-white text-center mt-2">Scheduled Walks</h1>
+            </div>
           </div>
 
           {sessions.length === 0 ? (

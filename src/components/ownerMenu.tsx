@@ -37,7 +37,7 @@ export default function OwnerMenu() {
               </button>
             </li>
             <li>
-              <button className="py-3" onClick={()=>navigate("/owner/schedule")}>
+              <button className="py-3" onClick={()=>navigate("/my-sessions")}>
                 Scheduled Walks
               </button>
             </li>
