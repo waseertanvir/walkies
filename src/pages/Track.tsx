@@ -9,6 +9,8 @@ import { TrajectoryLine } from '../components/TrajectoryLine';
 import logo from '../assets/Logo.png'
 import Loader from "../Loader";
 import { WalkStatus } from '../constants/WalkStatus';
+import { Rating } from '@smastrom/react-rating'
+import '@smastrom/react-rating/style.css'
 
 type LatLng = { lat: number; lng: number };
 type Role = 'owner' | 'walker' | string;
@@ -89,9 +91,9 @@ export default function Track() {
   const [isLoaded, setIsLoaded] = useState(false);
   const intervalRef = useRef<number | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const center = useMemo<LatLng>(() => myPosition ?? { lat: 49.24, lng: -123.05 }, [myPosition]);
+  const [rating, setRating] = useState(0)
 
   useEffect(() => {
     (async () => {
@@ -419,13 +421,13 @@ export default function Track() {
         <div className="absolute bottom-0 w-full h-25% rounded-t-xl rounded-b-none bg-wsage p-5">
           <div className='grid items-center justify-center h-full w-full'>
             <button
-                onClick={startWalk}
-                className={`absolute mt-2 px-3 py-1 rounded ${canStart == true ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-600'
-                  }`}
-              >
-                Start Walk
-              </button>
-              
+              onClick={startWalk}
+              className={`absolute mt-2 px-3 py-1 rounded ${canStart == true ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-600'
+                }`}
+            >
+              Start Walk
+            </button>
+
             {avatarUrl ? (
               <img src={avatarUrl} alt={me?.name ?? 'Profile'}
                 className="relative left-1/2 -top-20 transform -translate-x-1/2 max-w-[125px] max-h-[125px] w-full h-auto
@@ -453,7 +455,7 @@ export default function Track() {
               Franklin
             </p>
 
-          {/*   {   <div className="relative top-3 right-3 z-10 bg-white p-3 rounded-lg shadow">
+            {/*   {   <div className="relative top-3 right-3 z-10 bg-white p-3 rounded-lg shadow">
               <div>Status: {session?.status}</div>
               
               <button
@@ -628,6 +630,18 @@ export default function Track() {
               <p className="text-1xl text-white">Duration: 11:30 - 12:35</p>
 
               <p className="text-1xl text-white">Activities: Walk</p>
+            </div>
+
+            <div className="flex gap-4 justify-center mb-5">
+              <p className="text-1xl text-white">Please provide us with a rating.</p>
+            </div>
+
+            <div className="flex gap-4 justify-center mb-5">
+              <Rating
+                style={{ maxWidth: 180 }}
+                value={rating}
+                onChange={setRating}
+              />
             </div>
 
             <div className='relative w-full h-auto border border-white-300'>
