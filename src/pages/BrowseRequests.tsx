@@ -5,6 +5,7 @@ import ProtectedRoute from '../auth/ProtectedRoute';
 import { Card, Button, StatusPill } from '../components/ui';
 import { WalkStatus } from '../constants/WalkStatus';
 import { SessionType } from '../constants/SessionType';
+import { ChevronLeft } from 'lucide-react';
 
 interface Request {
   id: string;
@@ -213,10 +214,16 @@ export default function BrowseRequests() {
     <ProtectedRoute>
       <div className="min-h-screen bg-wblue p-4">
         <div className="max-w-4xl mx-auto">
+          <button
+            onClick={() => navigate(-1)}
+            className="absolute top-4 left-4 bg-wolive text-black p-2 rounded-full shadow-lg hover:bg-green-600 transition"
+            >
+            <ChevronLeft size={30} />
+          </button>
           <div className="flex items-center mb-6">
-            <Button variant="secondary" onClick={() => navigate('/')} className="mr-4">
+            {/* <Button variant="secondary" onClick={() => navigate('/')} className="mr-4">
               ← Back
-            </Button>
+            </Button> */}
             <h1 className="text-2xl font-bold text-white">Available Walk Requests</h1>
           </div>
 

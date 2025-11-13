@@ -3,15 +3,16 @@ import { useNavigate } from 'react-router';
 import { supabase } from '../supabaseClient';
 import ProtectedRoute from '../auth/ProtectedRoute';
 import { Card, Button } from '../components/ui';
-import { ChevronLeft, X } from 'lucide-react';
+import { ChevronLeft, X, Upload } from 'lucide-react';
 
 interface Dog {
   id: string;
+  owner_id: string;
   name: string;
   breed: string;
-  bio?: string;
-  dob?: string;
   description?: string;
+  avatar_url?: string;
+  created_at?: string;
 }
 
 export default function OwnerDogs() {
@@ -22,7 +23,13 @@ export default function OwnerDogs() {
   const [selectedDog, setSelectedDog] = useState<Dog | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [savingDog, setSavingDog] = useState(false);
-  const [dogForm, setDogForm] = useState({ name: '', breed: '', description: '' });
+  const [uploading, setUploading] = useState(false);
+  const [dogForm, setDogForm] = useState({
+    name: '',
+    breed: '',
+    description: '',
+    avatar_url: '',
+  });
 
   useEffect(() => {
     const fetchDogs = async () => {
@@ -43,17 +50,51 @@ export default function OwnerDogs() {
     fetchDogs();
   }, []);
 
-  const handleCardClick = (dog: Dog) => {
-    setSelectedDog(dog);
-    setShowDogModal(true);
-  };
-
   const handleInputChange = (field: string, value: string) => {
     setDogForm(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleCardClick = (dog: Dog) => {
+    setSelectedDog(dog);
+    setDogForm({
+      name: dog.name,
+      breed: dog.breed,
+      description: dog.description || '',
+      avatar_url: dog.avatar_url || '',
+    });
+    setShowDogModal(true);
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploading(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('profile-pictures')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: publicUrlData } = supabase.storage
+        .from('profile-pictures')
+        .getPublicUrl(filePath);
+
+      setDogForm(prev => ({ ...prev, avatar_url: publicUrlData.publicUrl }));
+    } catch (error: any) {
+      alert('Error uploading image: ' + error.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const saveDog = async () => {
-    const { name, breed, description } = dogForm;
+    const { name, breed, description, avatar_url } = dogForm;
     if (!name || !breed) {
       alert('Please enter both name and breed');
       return;
@@ -70,6 +111,7 @@ export default function OwnerDogs() {
         name,
         breed,
         description: description || null,
+        avatar_url: avatar_url || null,
       });
 
       if (error) throw error;
@@ -81,11 +123,44 @@ export default function OwnerDogs() {
         .order('created_at', { ascending: false });
 
       setDogs(data || []);
-      setDogForm({ name: '', breed: '', description: '' });
+      setDogForm({ name: '', breed: '', description: '', avatar_url: '' });
       setShowAddModal(false);
     } catch (error: any) {
       console.error('Error adding dog:', error.message);
       alert('Error adding dog: ' + error.message);
+    } finally {
+      setSavingDog(false);
+    }
+  };
+
+  const handleSaveChanges = async () => {
+    if (!selectedDog) return;
+    setSavingDog(true);
+
+    try {
+      const { error } = await supabase
+        .from('pets')
+        .update({
+          name: dogForm.name,
+          breed: dogForm.breed,
+          description: dogForm.description,
+          avatar_url: dogForm.avatar_url,
+        })
+        .eq('id', selectedDog.id);
+
+      if (error) throw error;
+
+      const { data } = await supabase
+        .from('pets')
+        .select('*')
+        .eq('owner_id', selectedDog.owner_id)
+        .order('created_at', { ascending: false });
+
+      setDogs(data || []);
+      setShowDogModal(false);
+    } catch (error: any) {
+      console.error('Error updating dog:', error.message);
+      alert('Error updating dog: ' + error.message);
     } finally {
       setSavingDog(false);
     }
@@ -105,7 +180,7 @@ export default function OwnerDogs() {
     <ProtectedRoute>
       <div className="min-h-screen bg-[#619B8A] p-4 relative overflow-hidden">
         <button
-          onClick={() => navigate('/userprofile')}
+          onClick={() => navigate(-1)}
           className="absolute top-4 left-4 bg-wolive text-black p-2 rounded-full shadow-lg hover:bg-green-600 transition"
         >
           <ChevronLeft size={30} />
@@ -127,6 +202,17 @@ export default function OwnerDogs() {
                   className="bg-[#D9D9D9] p-4 cursor-pointer hover:shadow-lg transition"
                   onClick={() => handleCardClick(dog)}
                 >
+                  {dog.avatar_url ? (
+                    <img
+                      src={dog.avatar_url}
+                      alt={dog.name}
+                      className="w-32 h-32 mx-auto rounded-full object-cover mb-3"
+                    />
+                  ) : (
+                    <div className="w-32 h-32 mx-auto rounded-full bg-gray-400 flex items-center justify-center text-white text-3xl font-bold mb-3">
+                      {dog.name[0]}
+                    </div>
+                  )}
                   <h2 className="text-xl font-semibold text-wblue mb-1 text-center">
                     {dog.name}
                   </h2>
@@ -149,42 +235,56 @@ export default function OwnerDogs() {
                 <X size={24} />
               </button>
 
-              <div className="flex flex-col items-center text-center">
-                <div className="w-24 h-24 rounded-full bg-gray-300 flex items-center justify-center border border-white shadow-md mb-4">
-                  <span className="text-white text-lg font-bold">
-                    {selectedDog.name[0]}
-                  </span>
-                </div>
-
-                <h2 className="text-2xl font-bold text-wblue mb-2">
-                  {selectedDog.name}
-                </h2>
-                <p className="text-gray-800 mb-1">
-                  <strong>Breed:</strong> {selectedDog.breed}
-                </p>
-                {selectedDog.dob && (
-                  <p className="text-gray-800 mb-1">
-                    <strong>Date of Birth:</strong> {selectedDog.dob}
-                  </p>
-                )}
-                {selectedDog.bio && (
-                  <p className="text-gray-700 mt-3 text-sm">
-                    <strong>Bio:</strong> {selectedDog.bio}
-                  </p>
-                )}
-                {selectedDog.description && (
-                  <p className="text-gray-700 mt-2 text-sm italic">
-                    "{selectedDog.description}"
-                  </p>
+              <div className="flex flex-col items-center text-center space-y-3">
+                {dogForm.avatar_url ? (
+                  <img
+                    src={dogForm.avatar_url}
+                    alt={dogForm.name}
+                    className="w-28 h-28 rounded-full object-cover border border-white shadow-md"
+                  />
+                ) : (
+                  <div className="w-28 h-28 rounded-full bg-gray-300 flex items-center justify-center border border-white shadow-md text-white text-xl font-bold">
+                    {dogForm.name ? dogForm.name[0] : '?'}
+                  </div>
                 )}
 
-                <div className="mt-6">
-                  <Button
-                    onClick={() => navigate(`/edit-dog/${selectedDog.id}`)}
-                  >
-                    Edit Dog Profile
-                  </Button>
-                </div>
+                <label className="flex items-center gap-2 text-sm cursor-pointer text-wblue mt-2">
+                  <Upload size={16} />
+                  <span>{uploading ? 'Uploading...' : 'Upload Image'}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                </label>
+
+                <input
+                  type="text"
+                  value={dogForm.name}
+                  onChange={e => handleInputChange('name', e.target.value)}
+                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-wblue"
+                  placeholder="Dog's Name"
+                />
+
+                <input
+                  type="text"
+                  value={dogForm.breed}
+                  onChange={e => handleInputChange('breed', e.target.value)}
+                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-wblue"
+                  placeholder="Breed"
+                />
+
+                <textarea
+                  value={dogForm.description}
+                  onChange={e => handleInputChange('description', e.target.value)}
+                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-wblue"
+                  placeholder="Description"
+                />
+
+                <Button onClick={handleSaveChanges} disabled={savingDog}>
+                  {savingDog ? 'Saving...' : 'Save Changes'}
+                </Button>
               </div>
             </div>
           </div>
@@ -222,6 +322,17 @@ export default function OwnerDogs() {
                     />
                   </div>
                 ))}
+
+                <label className="flex items-center gap-2 text-sm cursor-pointer text-wblue">
+                  <Upload size={16} />
+                  <span>{uploading ? 'Uploading...' : 'Upload Image'}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                </label>
 
                 <Button onClick={saveDog} disabled={savingDog}>
                   {savingDog ? 'Saving...' : 'Add Dog'}
