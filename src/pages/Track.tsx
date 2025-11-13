@@ -383,8 +383,8 @@ export default function Track() {
       const insertedId = data?.[0]?.session_id;
 
       if (!insertedId) {
-        console.warn('Insert succeeded but no id was returned.');
-        alert('Could not retrieve the new record id.');
+        console.warn('Something went wrong when submitting your review.');
+        alert('Something went wrong when submitting your review. Please skip or try again later.');
         return;
       }
 
