@@ -121,7 +121,7 @@ function ScheduleWalkContent() {
         getType();
     }, [])
 
-    const sendRequest = async (): Promise<boolean> => {
+    const sendRequest = async (type: string): Promise<boolean> => {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return false;
 
@@ -141,7 +141,8 @@ function ScheduleWalkContent() {
             activity: selectActivity || null,
             meeting_location: pickupLocation,
             dropoff_location: dropoffLocation,
-            special_instructions: instructions || null
+            special_instructions: instructions || null,
+            type: type
         });
 
         if (error) {
@@ -171,12 +172,14 @@ function ScheduleWalkContent() {
 
         try {
             setSubmitting(true);
-            setState("BROADCAST");
+            // setState("BROADCAST");
 
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
             const nowIso = new Date().toISOString();
+
+            const type = walkerID ? "schedule" : "broadcast";
 
             const { data, error } = await supabase
                 .from('sessions')
@@ -192,7 +195,7 @@ function ScheduleWalkContent() {
                     meeting_location: pickupLocation,
                     dropoff_location: dropoffLocation,
                     special_instructions: instructions || null,
-                    type: 'broadcast'
+                    type: type
                 })
                 .select('id');
 
@@ -219,7 +222,7 @@ function ScheduleWalkContent() {
     const handleSelect = async () => {
         try {
             setSubmitting(true);
-            const response = await sendRequest();
+            const response = await sendRequest("schedule");
             if (response) navigate('/owner/dashboard/');
         } finally {
             setSubmitting(false);
