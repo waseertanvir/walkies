@@ -21,6 +21,9 @@ export interface Walk {
   created_at: string;
   updated_at: string;
   applications: string[] | null;
+  pets?: {
+    name: string;
+  };
 }
 
 type UserLocation = {
@@ -54,7 +57,7 @@ export default function WalkerDashboard() {
       // Fetch all sessions assigned to walker
       const { data, error } = await supabase
         .from('sessions')
-        .select('*')
+        .select('*, pets ( name )')
         .eq('walker_id', user.id)
         .order('start_time', { ascending: false });
 
@@ -178,7 +181,7 @@ export default function WalkerDashboard() {
                   }`}
               >
                 <h2 className="text-xl font-semibold text-wblue mb-1">
-                  Dog: {walk.pet_id}
+                  Dog: {walk.pets?.name}
                 </h2>
 
                 <p className="text-gray-700 text-sm mb-2">
