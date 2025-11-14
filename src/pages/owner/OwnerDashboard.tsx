@@ -223,8 +223,10 @@ export default function App() {
                 key={user.userID}
                 position={user.position}
                 onClick={() => {
-                  setClickedUser(user);
-                  setMapCenter(user.position);
+                  if (user.role == 'walker') {
+                    setClickedUser(user);
+                    setMapCenter(user.position);
+                  }
                 }
                 }
               >
