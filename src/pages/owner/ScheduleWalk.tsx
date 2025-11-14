@@ -26,7 +26,7 @@ function ScheduleWalkContent() {
 
     const [selectActivity, setSelectActivity] = useState("");
     const [durationHours, setDurationHours] = useState("");
-    const [dateTime, setDateTime] = useState(Date);
+    const [dateTime, setDateTime] = useState("");
     const compensation = "30"
     const [instructions, setInstructions] = useState("");
 
@@ -105,14 +105,19 @@ function ScheduleWalkContent() {
 
         // get request type
         const getType = async () => {
-            if (!walkerID) {
-                setDateTime(Date());
-                setPickupLocation(myPosition)
-                setRequestType("broadcast")
-            } else {
-                setRequestType("select")
+            if (walkerID === 'latertemp') {
+                setRequestType("select");
+                setDateTime("");
+            } else if (!walkerID) {
+                setDateTime(new Date().toISOString().slice(0, 16));
+                setPickupLocation(myPosition);
+                setRequestType("broadcast");
             }
-        }
+            else {
+                setRequestType("select");
+                setDateTime(new Date().toISOString().slice(0, 16));
+            }
+        };
         getType();
     }, [])
 
@@ -127,7 +132,7 @@ function ScheduleWalkContent() {
 
         const { error } = await supabase.from('sessions').insert({
             owner_id: user.id,
-            walker_id: walkerID,
+            walker_id: walkerID === "latertemp" ? null : walkerID,
             pet_id: selectedDogId || null,
             status: 'pending',
             start_time: startIso,
@@ -148,12 +153,64 @@ function ScheduleWalkContent() {
     };
 
 
-    const handleBroadcast = async () => {
+    // const handleBroadcast = async () => {
+    //     try {
+    //         setSubmitting(true);
+    //         setState("BROADCAST");
+    //         const response = await sendRequest();
+    //         if (response) navigate(-1);
+    //     } finally {
+    //         setSubmitting(false);
+    //     }
+    // };
+    const handleImmediateWalk = async () => {
+        if (!selectedDogId) {
+            alert("Please select a dog first.");
+            return;
+        }
+
         try {
             setSubmitting(true);
             setState("BROADCAST");
-            const response = await sendRequest();
-            if (response) navigate(-1);
+
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            const nowIso = new Date().toISOString();
+
+            const { data, error } = await supabase
+                .from('sessions')
+                .insert({
+                    owner_id: user.id,
+                    walker_id: null, // broadcast
+                    pet_id: selectedDogId,
+                    status: 'pending',
+                    start_time: nowIso,
+                    duration_minutes: durationHours ? Math.round(parseFloat(durationHours) * 60) : 30,
+                    compensation: Number(compensation),
+                    activity: selectActivity || null,
+                    meeting_location: pickupLocation,
+                    dropoff_location: dropoffLocation,
+                    special_instructions: instructions || null,
+                    type: 'broadcast'
+                })
+                .select('id');
+
+            const insertedId = data?.[0]?.id;
+
+            if (!insertedId) {
+                alert("Could not retrieve the new session ID.");
+                return;
+            }
+
+            if (error) {
+                console.error("Error creating session:", error);
+                alert("Error creating session: " + error.message);
+                return;
+            }
+
+            // Navigate to the live tracking page for the new session
+            navigate(`/track/${insertedId}`);
         } finally {
             setSubmitting(false);
         }
@@ -191,7 +248,7 @@ function ScheduleWalkContent() {
                     </button>
             {/* <h1 className="text-2xl font-bold text-white ">My Sessions</h1> */}
                     <div className="flex justify-center">
-                        <h1 className="text-2xl font-bold text-white text-center mt-2">Schedule A Walk</h1>
+                        <h1 className="text-2xl font-bold text-white text-center mt-2">Set Up Your Walk</h1>
                     </div>
             </div>
 
@@ -239,7 +296,7 @@ function ScheduleWalkContent() {
                         onChange={(e) => setDurationHours(e.target.value)}
                     />
                 </div>
-                {requestType == "select" && (
+                {requestType === "select" && (
                     <div className="flex items-center m-5 p-[5px] rounded-md bg-white border border-[#ccc]">
                         <input
                             type="datetime-local"
@@ -341,10 +398,10 @@ function ScheduleWalkContent() {
                     {requestType === 'broadcast' && (
                         <button
                             className="p-4 rounded-3xl bg-worange disabled:opacity-50"
-                            onClick={handleBroadcast}
+                            onClick={handleImmediateWalk}
                             disabled={submitting}
                         >
-                            {submitting ? 'Sending...' : 'Broadcast'}
+                            {submitting ? 'Finding walkers...' : 'Broadcast Now'}
                         </button>
                     )}
                     {requestType === 'select' && (
