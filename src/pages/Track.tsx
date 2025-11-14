@@ -596,12 +596,12 @@ export default function Track() {
 
           {me?.role === 'owner' && sessionStatus === WalkStatus.Accepted && (
             <div className="text-white font-medium py-2 px-4 rounded-md text-center">
-              ETA: {haversine(ownerPos!, walkerPos!) / 100}
+              ETA: {haversine(ownerPos!, walkerPos!) / 100} Mins
             </div>
           )}
           {me?.role === 'walker' && sessionStatus === WalkStatus.Accepted && (
             <div className="invisible text-white font-medium py-2 px-4 rounded-md text-center">
-              ETA: {haversine(ownerPos!, walkerPos!) / 100}
+              ETA: {haversine(ownerPos!, walkerPos!) / 100} Mins
             </div>
           )}
           {sessionStatus === WalkStatus.Accepted && (
