@@ -174,7 +174,7 @@ export default function Track() {
     if (!sessionId) return;
 
     const channel = supabase
-      .channel("messages")
+      .channel(`messages:${sessionId}`)
       .on(
         "postgres_changes",
         {
@@ -184,6 +184,7 @@ export default function Track() {
           filter: `session_id=eq.${sessionId}`,
         },
         (payload) => {
+          console.log("Realtime fired:", payload.new);
           setMessages((prev) => [...prev, payload.new as Message]);
         }
       )
@@ -464,8 +465,10 @@ export default function Track() {
     if (!chatInput.trim()) return;
     if (!me) return;
     const { data: user } = await supabase.auth.getUser();
+
     console.log("auth.uid():", user?.user?.id);
     console.log("me.id:", me?.id);
+
     await supabase.from("messages").insert({
       session_id: sessionId,
       sender_id: me.id,
@@ -477,6 +480,8 @@ export default function Track() {
       sender_id: me?.id,
       message: chatInput,
     });
+
+    console.log("MESSAGES STATE:", messages);
 
     setChatInput("");
   }
