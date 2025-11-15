@@ -274,13 +274,13 @@ export default function Track() {
   const iAmWalker = me?.role === 'walker' && session?.walker_id === me.id;
 
   const canStart =
-    iAmWalker && session?.status === 'accepted' && within20m(ownerPos, walkerPos) && sessionStatus !== WalkStatus.InProgress;
+    iAmWalker && session?.status === 'accepted' && true && sessionStatus !== WalkStatus.InProgress;
 
   const canEnd = (() => {
     if (!session || !iAmWalker || session.status !== WalkStatus.InProgress) return false;
     const end = new Date(session.start_time);
     end.setMinutes(end.getMinutes() + session.duration_minutes);
-    return within20m(ownerPos, walkerPos) && new Date() >= end;
+    return true && new Date() >= end;
   })();
 
   const startWalk = async () => {
@@ -546,8 +546,80 @@ export default function Track() {
         </Map>
       </APIProvider>
 
+      {/* WALKER VIEW */} 
+      {me?.role === "walker" && (
+        <>
+          {sessionStatus === WalkStatus.Accepted && (
+            <div className="absolute bottom-0 w-full bg-wsage p-5 rounded-t-xl">
+              <div className="flex flex-col items-center gap-4">
+                <button
+                  onClick={startWalk}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-md w-full text-center"
+                >
+                  Start Walk
+                </button>
+              </div>
+            </div>
+          )}
 
-      {me?.role === 'walker' && (
+          {sessionStatus === WalkStatus.InProgress && (
+            <div className="absolute bottom-0 w-full bg-wsage p-5 rounded-t-xl">
+              <div className="flex flex-col gap-4">
+
+                {/* Chat box */}
+                <div className="w-full h-32 bg-gray-700/60 rounded-md p-2 overflow-y-auto text-left">
+                  {messages.length === 0 ? (
+                    <p className="text-gray-300 text-sm text-center mt-4">
+                      Start the conversation…
+                    </p>
+                  ) : (
+                    messages.map((m) => (
+                      <div
+                        key={m.id}
+                        className={`text-sm my-1 ${
+                          m.sender_id === me.id
+                            ? "text-blue-300 text-right"
+                            : "text-white text-left"
+                        }`}
+                      >
+                        {m.message}
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Chat Input */}
+                <div className="flex">
+                  <input
+                    type="text"
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    placeholder="Message..."
+                    className="flex-grow bg-gray-700 text-white px-3 py-2 rounded-l-md focus:outline-none"
+                  />
+                  <button
+                    onClick={sendMessage}
+                    className="bg-blue-600 text-white px-4 rounded-r-md"
+                  >
+                    Send
+                  </button>
+                </div>
+
+                {/* End Walk */}
+                <button
+                  onClick={endWalk}
+                  className="bg-orange-500 text-white px-4 py-2 rounded-md w-full text-center"
+                >
+                  End Walk
+                </button>
+
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* {me?.role === 'walker' && (
         <div className="absolute bottom-0 w-full h-25% rounded-t-xl rounded-b-none bg-wsage p-5">
           <div className='grid items-center justify-center h-full w-full'>
             <div className="absolute flex gap-2">
@@ -600,7 +672,7 @@ export default function Track() {
             </div>
           </div>
         </div>
-      )}
+      )} */}
 
       {me?.role === 'owner' && sessionStatus === WalkStatus.Pending && (
         <div className="absolute bottom-0 w-full h-25% rounded-t-xl rounded-b-none bg-wsage p-5">
