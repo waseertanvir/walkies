@@ -39,6 +39,14 @@ type SessionDetail = {
   created_at: string | null;
 }
 
+type Message = {
+  id: string;
+  session_id: string;
+  sender_id: string;
+  message: string;
+  created_at: string;
+};
+
 // calculating distances
 const toRad = (v: number) => (v * Math.PI) / 180;
 const haversine = (a: LatLng, b: LatLng) => {
@@ -98,6 +106,8 @@ export default function Track() {
     rating: 0,
     description: ''
   });
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [chatInput, setChatInput] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -141,6 +151,49 @@ export default function Track() {
       setIsLoaded(true);
     })();
   }, [navigate, sessionId]);
+
+  useEffect(() => {
+    if (!sessionId) return;
+
+    async function loadMessages() {
+      const { data, error } = await supabase
+        .from("messages")
+        .select("*")
+        .eq("session_id", sessionId)
+        .order("created_at", { ascending: true });
+
+      if (!error && data) {
+        setMessages(data);
+      }
+    }
+
+    loadMessages();
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (!sessionId) return;
+
+    const channel = supabase
+      .channel("messages")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `session_id=eq.${sessionId}`,
+        },
+        (payload) => {
+          setMessages((prev) => [...prev, payload.new as Message]);
+        }
+      )
+      .subscribe();
+
+    // cleanup is sync function
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [sessionId]);
 
   // realtime
   useEffect(() => {
@@ -407,6 +460,27 @@ export default function Track() {
     }
   }
 
+  async function sendMessage() {
+    if (!chatInput.trim()) return;
+    if (!me) return;
+    const { data: user } = await supabase.auth.getUser();
+    console.log("auth.uid():", user?.user?.id);
+    console.log("me.id:", me?.id);
+    await supabase.from("messages").insert({
+      session_id: sessionId,
+      sender_id: me.id,
+      message: chatInput.trim(),
+    });
+
+    console.log("INSERTING:", {
+      session_id: sessionId,
+      sender_id: me?.id,
+      message: chatInput,
+    });
+
+    setChatInput("");
+  }
+
   return (
     <ProtectedRoute>
       {me?.role === 'owner' && <OwnerMenu />}
@@ -634,8 +708,43 @@ export default function Track() {
               Franklin
             </p>
 
-            <div className="relative w-full -top-5 text-center">
-              <p className="text-1xl text-white">Your dog is having a very good time.</p>
+            <div className="relative w-full -top-5 flex flex-col items-center px-4">
+
+              {/* Messages */}
+              <div className="w-full h-32 bg-gray-700/60 rounded-md p-2 overflow-y-auto text-left">
+                {messages.length === 0 ? (
+                  <p className="text-gray-300 text-sm text-center mt-4">Start the conversation…</p>
+                ) : (
+                  messages.map((m) => (
+                    <div
+                      key={m.id}
+                      className={`text-sm my-1 ${
+                        m.sender_id === me.id ? "text-blue-300 text-right" : "text-white text-left"
+                      }`}
+                    >
+                      {m.message}
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Input */}
+              <div className="w-full flex mt-2">
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  placeholder="Message..."
+                  className="flex-grow bg-gray-700 text-white px-3 py-2 rounded-l-md focus:outline-none"
+                />
+                <button
+                  onClick={sendMessage}
+                  className="bg-blue-600 text-white px-4 rounded-r-md"
+                >
+                  Send
+                </button>
+              </div>
+
             </div>
 
             <div className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-md text-center">
