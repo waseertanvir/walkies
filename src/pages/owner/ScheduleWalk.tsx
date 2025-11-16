@@ -27,7 +27,7 @@ function ScheduleWalkContent() {
     const [selectActivity, setSelectActivity] = useState("");
     const [durationHours, setDurationHours] = useState("");
     const [dateTime, setDateTime] = useState("");
-    const compensation = "30"
+    const [compensation, setCompensation] = useState("15");
     const [instructions, setInstructions] = useState("");
 
     const [pickupAddress, setPickupAddress] = useState("");
@@ -129,6 +129,11 @@ function ScheduleWalkContent() {
             dateTime
                 ? new Date(dateTime).toISOString()
                 : new Date().toISOString();
+
+        if (!compensation || Number(compensation) <= 0) {
+            alert("Please enter a valid compensation amount.");
+            return false;
+        }       
 
         const { error } = await supabase.from('sessions').insert({
             owner_id: user.id,
@@ -297,6 +302,21 @@ function ScheduleWalkContent() {
                         placeholder="e.g. 2.5"
                         defaultValue={durationHours}
                         onChange={(e) => setDurationHours(e.target.value)}
+                    />
+                </div>
+
+                <div className="flex justify-between items-center m-5 p-1 rounded-md bg-white border border-gray-300">
+                    <label htmlFor="compensation">Compensation ($/hr):</label>
+                    <input
+                        type="number"
+                        id="compensation"
+                        name="compensation"
+                        min="0"
+                        step="1"
+                        placeholder="Enter amount"
+                        value={compensation}
+                        onChange={(e) => setCompensation(e.target.value)}
+                        className="w-24 text-right"
                     />
                 </div>
                 {requestType === "select" && (
