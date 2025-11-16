@@ -50,6 +50,7 @@ export default function MySessions() {
           .from('sessions')
           .select('*')
           .eq('owner_id', user.id)
+          .eq('is_deleted', false)
           .order('created_at', { ascending: false });
 
         console.log('MySessions - Raw sessions data:', data);
@@ -118,11 +119,12 @@ export default function MySessions() {
     try {
       const { error } = await supabase
         .from('sessions')
-        .delete()
+        .update({ is_deleted: true })
         .eq('id', sessionId);
 
       if (error) {
-        alert('Error deleting session: ' + error.message);
+        console.log(error);
+        alert('Failed to remove session.');
         return;
       }
 
