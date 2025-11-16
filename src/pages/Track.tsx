@@ -171,7 +171,7 @@ export default function Track() {
   }, [sessionId]);
 
   useEffect(() => {
-    if (!sessionId) return;
+    if (!sessionId||!me) return;
 
     const channel = supabase
       .channel(`messages:${sessionId}`)
@@ -194,7 +194,7 @@ export default function Track() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [sessionId]);
+  }, [sessionId, me]);
 
   // realtime
   useEffect(() => {
