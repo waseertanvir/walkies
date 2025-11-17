@@ -109,7 +109,6 @@ export default function MySessions() {
   };
 
   const handleEditSession = (sessionId: string) => {
-    // TODO: Implement edit functionality
     navigate(`/owner/schedule/edit-session/${sessionId}`);
   };
 
