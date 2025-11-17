@@ -152,7 +152,7 @@ export default function MySessions() {
               ← Back to Dashboard
             </Button> */}
             <button
-              onClick={() => navigate(-1)}
+              onClick={() => navigate('/owner/dashboard')}
               className="fixed top-4 left-4 z-50 bg-wolive text-black p-2 rounded-full shadow-lg hover:bg-green-600 transition"
             >
               <ChevronLeft size={30} />
