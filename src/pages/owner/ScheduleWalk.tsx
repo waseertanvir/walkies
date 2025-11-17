@@ -16,10 +16,11 @@ export default function ScheduleWalk() {
 }
 
 function ScheduleWalkContent() {
-    const { walkerID } = useParams();
+    const { walkerID, sessionID } = useParams();
     const location = useLocation();
     const navigate = useNavigate();
     const [requestType, setRequestType] = useState("");
+    const isEditMode = !!sessionID;
 
     const [dogs, setDogs] = useState<any[]>([]);
     const [selectedDogId, setSelectedDogId] = useState<string>("");
@@ -120,6 +121,77 @@ function ScheduleWalkContent() {
         };
         getType();
     }, [])
+
+    // === LOAD SESSION INTO FORM WHEN EDITING ===
+useEffect(() => {
+    if (!isEditMode || !sessionID) return;
+
+    const loadSession = async () => {
+        const { data, error } = await supabase
+            .from("sessions")
+            .select("*")
+            .eq("id", sessionID)
+            .single();
+
+        if (error) {
+            console.error("Error loading session:", error);
+            return;
+        }
+
+        // Pre-fill fields
+        setSelectedDogId(data.pet_id);
+        setSelectActivity(data.activity || "");
+        setDurationHours((data.duration_minutes / 60).toString());
+        setDateTime(data.start_time.slice(0, 16)); // datetime-local format
+        setCompensation(data.compensation.toString());
+        setInstructions(data.special_instructions || "");
+
+        // meeting (pickup)
+        if (data.meeting_location) {
+            setPickupAddress(data.meeting_location.address || "");
+            setPickupLocation(data.meeting_location);
+        }
+
+        // dropoff
+        if (data.dropoff_location) {
+            setDropoffAddress(data.dropoff_location.address || "");
+            setDropoffLocation(data.dropoff_location);
+        }
+    };
+
+    loadSession();
+}, [isEditMode, sessionID]);
+
+
+    const handleUpdateSession = async () => {
+    if (!sessionID) return;
+
+    const startIso = new Date(dateTime).toISOString();
+
+    const { error } = await supabase
+        .from("sessions")
+        .update({
+            pet_id: selectedDogId,
+            activity: selectActivity,
+            duration_minutes: Math.round(parseFloat(durationHours) * 60),
+            start_time: startIso,
+            compensation: Number(compensation),
+            meeting_location: pickupLocation,
+            dropoff_location: dropoffLocation,
+            special_instructions: instructions
+        })
+        .eq("id", sessionID);
+
+    if (error) {
+        console.error("Update error:", error);
+        alert("Could not update walk.");
+        return;
+    }
+
+    alert("Walk updated!");
+    navigate("/my-sessions");
+};
+
 
     const sendRequest = async (type: string): Promise<boolean> => {
         const { data: { user } } = await supabase.auth.getUser();
@@ -418,7 +490,7 @@ function ScheduleWalkContent() {
                 </div>
 
                 <div className="flex justify-center w-full">
-                    {requestType === 'broadcast' && (
+                    {!isEditMode && requestType === 'broadcast' && (
                         <button
                             className="p-4 rounded-3xl bg-worange disabled:opacity-50"
                             onClick={handleImmediateWalk}
@@ -427,13 +499,22 @@ function ScheduleWalkContent() {
                             {submitting ? 'Finding walkers...' : 'Broadcast Now'}
                         </button>
                     )}
-                    {requestType === 'select' && (
+                    {!isEditMode && requestType === 'select' && (
                         <button
                             className="p-4 rounded-3xl bg-worange disabled:opacity-50"
                             onClick={handleSelect}
                             disabled={submitting}
                         >
                             {submitting ? 'Requesting...' : 'Request'}
+                        </button>
+                    )}
+                    {isEditMode && (
+                        <button
+                            className="p-4 rounded-3xl bg-worange disabled:opacity-50"
+                            onClick={handleUpdateSession}
+                            disabled={submitting}
+                        >
+                            {submitting ? 'Saving...' : 'Update Walk'}
                         </button>
                     )}
                 </div>

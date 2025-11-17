@@ -110,7 +110,7 @@ export default function MySessions() {
 
   const handleEditSession = (sessionId: string) => {
     // TODO: Implement edit functionality
-    alert('Edit functionality coming soon!');
+    navigate(`/owner/schedule/edit-session/${sessionId}`);
   };
 
   const handleDeleteSession = async (sessionId: string) => {

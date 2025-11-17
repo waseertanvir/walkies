@@ -96,7 +96,11 @@ const router = createBrowserRouter([
   {
     path: "/walker/completed-walks",
     Component: CompletedWalks
-  }
+  },
+  {
+  path: "/owner/schedule/edit-session/:sessionID",
+  Component: ScheduleWalk
+}
 ]);
 
 
