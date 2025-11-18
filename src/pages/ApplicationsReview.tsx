@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router';
 import { supabase } from '../supabaseClient';
 import ProtectedRoute from '../auth/ProtectedRoute';
 import { Card, Button, StatusPill } from '../components/ui';
+import { ChevronLeft } from 'lucide-react';
 
 interface WalkerProfile {
   id: string;
@@ -183,11 +184,16 @@ export default function ApplicationsReview() {
     <ProtectedRoute>
       <div className="min-h-screen bg-wblue p-4">
         <div className="max-w-4xl mx-auto">
-          <div className="flex items-center mb-6">
-            <Button variant="secondary" onClick={() => navigate('/my-sessions')} className="mr-4">
-              ← Back to My Sessions
-            </Button>
-            <h1 className="text-2xl font-bold text-white">Review Applications</h1>
+          <div className="relative mb-6">
+            <button
+              onClick={() => navigate(-1)}
+              className="fixed top-4 left-4 z-50 bg-wolive text-black p-2 rounded-full shadow-lg hover:bg-green-600 transition"
+              >
+              <ChevronLeft size={30} />
+            </button>
+            <div className="flex justify-center">
+              <h1 className="text-2xl font-bold text-white text-center mt-2">Review Applications</h1>
+            </div>
           </div>
 
           {/* Session Details */}
