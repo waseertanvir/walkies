@@ -209,10 +209,14 @@ export default function Track() {
 
       // if this is the walker, update the polyline path
       if (session?.walker_id && p.userID === session.walker_id && sessionStatus === WalkStatus.InProgress) {
-        console.log(payload)
+        console.log('Walker location received:', p.position);
         setPath((prev) => {
           const last = prev[prev.length - 1];
-          if (!last || haversine(last, p.position) >= 1) return [...prev, p.position];
+          if (!last || haversine(last, p.position) >= 1) {
+            const newPath = [...prev, p.position];
+            console.log(`Path updated: ${newPath.length} points`);
+            return newPath;
+          }
           return prev;
         });
       }
@@ -293,6 +297,9 @@ export default function Track() {
   const endWalk = async () => {
     if (!session) return;
 
+    console.log('endWalk called - path length:', path.length);
+    console.log('Current path:', path);
+
     const { data } = await supabase
       .from('sessions')
       .update({
@@ -319,13 +326,25 @@ export default function Track() {
       });
     }
 
-    const { error } = await supabase.from('session_detail')
-      .insert(result)
-      .eq('id', session.id);
+    console.log(`Preparing to save ${result.length} location points to session_detail`);
 
-    console.log("Going to persist data in session_detail: " + result);
+    if (result.length === 0) {
+      console.warn('⚠️ WARNING: No location points to save! Path array is empty.');
+      alert('Warning: No location data was collected during this walk.');
+    } else {
+      const { error } = await supabase
+        .from('session_detail')
+        .insert(result);
 
-    if (error) console.error('Insert failed:', error);
+      if (error) {
+        console.error('Insert failed:', error);
+        console.error('Error code:', error.code);
+        console.error('Error message:', error.message);
+        alert('Error saving location data: ' + error.message);
+      } else {
+        console.log(`✅ Successfully saved ${result.length} location points to session_detail`);
+      }
+    }
 
     setSession({ ...session, status: WalkStatus.Rate });
     setSessionStatus(WalkStatus.Rate);
@@ -462,9 +481,10 @@ export default function Track() {
       {me?.role === 'owner' && <OwnerMenu />}
       {me?.role === 'walker' && <WalkerMenu />}
 
-      <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}>
-        <Map
-          mapId={import.meta.env.VITE_GOOGLE_MAP_ID}
+      {import.meta.env.VITE_GOOGLE_MAPS_API_KEY ? (
+        <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}>
+          <Map
+            mapId={import.meta.env.VITE_GOOGLE_MAP_ID}
           style={{ width: '100vw', height: '78%' }}
           defaultCenter={center}
           defaultZoom={16}
@@ -516,6 +536,16 @@ export default function Track() {
           {sessionStatus === WalkStatus.InProgress && path.length > 1 && <WalkerPath path={path} />}
         </Map>
       </APIProvider>
+      ) : (
+        <div className="w-full h-full flex items-center justify-center bg-gray-100">
+          <div className="text-center p-4">
+            <p className="text-gray-600 mb-2">Google Maps API key not configured</p>
+            <p className="text-sm text-gray-500">
+              Please set VITE_GOOGLE_MAPS_API_KEY in your .env file
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className='absolute z-50 left-1/2 top-[65%] -translate-x-1/2 '>
         <div className="

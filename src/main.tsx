@@ -21,6 +21,8 @@ import WalkerDashboard from './pages/walker/WalkerDashboard.tsx'
 import CompletedWalks from './pages/walker/CompletedWalks.tsx'
 import Broadcast from './pages/owner/BroadcastWalk.tsx'
 import ScheduleWalk from './pages/owner/ScheduleWalk.tsx'
+import OwnerHistory from './pages/owner/OwnerHistory.tsx'
+import WalkHistoryDetail from './pages/WalkHistoryDetail.tsx'
 import DeviceStateContext from './DeviceStateContext.tsx'
 import { BrowserRouter } from "react-router-dom";
 
@@ -98,9 +100,17 @@ const router = createBrowserRouter([
     Component: CompletedWalks
   },
   {
-  path: "/owner/schedule/edit-session/:sessionID",
-  Component: ScheduleWalk
-}
+    path: "/owner/schedule/edit-session/:sessionID",
+    Component: ScheduleWalk
+  },
+  {
+    path: "/owner/history",
+    Component: OwnerHistory
+  },
+  {
+    path: "/walk-history/:sessionId",
+    Component: WalkHistoryDetail
+  }
 ]);
 
 
