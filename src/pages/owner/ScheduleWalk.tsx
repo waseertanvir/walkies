@@ -6,6 +6,7 @@ import { APIProvider, Map, AdvancedMarker, useMapsLibrary } from '@vis.gl/react-
 import { useDeviceState } from "../../DeviceStateContext";
 import { supabase } from '../../supabaseClient';
 import { ChevronLeft } from 'lucide-react';
+import { Button } from '../../components/ui';
 
 export default function ScheduleWalk() {
     return (
@@ -486,22 +487,22 @@ function ScheduleWalkContent() {
 
                 <div className="flex justify-center w-full">
                     {!isEditMode && requestType === 'broadcast' && (
-                        <button
-                            className="p-4 rounded-3xl bg-worange disabled:opacity-50"
+                        <Button
+                            className="mb-6"
                             onClick={handleImmediateWalk}
                             disabled={submitting}
                         >
                             {submitting ? 'Finding walkers...' : 'Broadcast Now'}
-                        </button>
+                        </Button>
                     )}
                     {!isEditMode && requestType === 'select' && (
-                        <button
-                            className="p-4 rounded-3xl bg-worange disabled:opacity-50"
+                        <Button
+                            className="mb-6"
                             onClick={handleSelect}
                             disabled={submitting}
                         >
-                            {submitting ? 'Requesting...' : 'Request'}
-                        </button>
+                            {submitting ? 'Requesting...' : 'Request Walk'}
+                        </Button>
                     )}
                     {isEditMode && (
                         <button

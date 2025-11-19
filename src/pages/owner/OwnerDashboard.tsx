@@ -7,6 +7,7 @@ import OwnerMenu from '../../components/ownerMenu.tsx';
 import profileBanner from '../../assets/profile_banner.png';
 import '../App.css'
 import { useDeviceState } from "../../DeviceStateContext";
+import { Button } from '../../components/ui';
 
 export default function App() {
   const [myPosition, setMyPosition] = useState<{ lat: number; lng: number } | null>(null);
@@ -293,15 +294,14 @@ export default function App() {
           </div>
         )}
 
-        <div className="absolute bottom-0 rounded-t-xl rounded-b-none bg-wsage w-full h-[10vh] flex justify-center items-center gap-20">
-          <div>
-            {/* <button className="p-4 mr-2 rounded-3xl bg-worange" onClick={() => navigate("/owner/broadcast")}> */}
-            <button className="p-4 mr-2 rounded-3xl bg-worange" onClick={() => navigate("/owner/schedule")}>
+        <div className="absolute bottom-4 w-full flex justify-center items-center px-4">
+          <div className="bg-wsage/90 backdrop-blur-sm rounded-2xl shadow-lg px-4 py-3 flex gap-3 w-full max-w-md">
+            <Button className="flex-1 rounded-3xl py-2 text-sm sm:text-base flex items-center justify-center gap-2" onClick={() => navigate("/owner/schedule")}>
               Find Immediate Walk
-            </button>
-            <button className="p-4 ml-2 rounded-3xl bg-worange" onClick={() => navigate("/owner/schedule/latertemp")}>
+            </Button>
+            <Button className="flex-1 rounded-3xl py-2 text-sm sm:text-base flex items-center justify-center gap-2" onClick={() => navigate("/owner/schedule/latertemp")}>
               Plan Future Walk
-            </button>
+            </Button>
           </div>
         </div>
       </APIProvider>
