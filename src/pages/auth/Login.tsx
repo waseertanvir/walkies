@@ -125,6 +125,26 @@ export default function Login() {
                     onChange={(e) => setPassword(e.target.value)}
                     className='bg-wsage py-1.5 px-4 rounded-md drop-shadow-2xl'
                 />
+                <button
+                    type="button"
+                    onClick={async () => {
+                        if (!email) {
+                            alert('Please enter your email address first');
+                            return;
+                        }
+                        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                            redirectTo: `${window.location.origin}/auth/reset-password`,
+                        });
+                        if (error) {
+                            alert('Error: ' + error.message);
+                        } else {
+                            alert('Password reset email sent! Check your inbox.');
+                        }
+                    }}
+                    className='text-sm text-wsage hover:text-wolive underline text-center'
+                >
+                    Forgot password?
+                </button>
                 <div className='flex justify-center items-center gap-5'>
                     <button
                         onClick={handleLogin}
