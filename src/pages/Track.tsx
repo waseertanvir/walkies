@@ -274,13 +274,13 @@ export default function Track() {
   const iAmWalker = me?.role === 'walker' && session?.walker_id === me.id;
 
   const canStart =
-    iAmWalker && session?.status === 'accepted' && true && sessionStatus !== WalkStatus.InProgress;
+    iAmWalker && session?.status === 'accepted' && within20m(ownerPos, walkerPos) && sessionStatus !== WalkStatus.InProgress;
 
   const canEnd = (() => {
     if (!session || !iAmWalker || session.status !== WalkStatus.InProgress) return false;
     const end = new Date(session.start_time);
     end.setMinutes(end.getMinutes() + session.duration_minutes);
-    return true && new Date() >= end;
+    return within20m(ownerPos, walkerPos) && new Date() >= end;
   })();
 
   const startWalk = async () => {
