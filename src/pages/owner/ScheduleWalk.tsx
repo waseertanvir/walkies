@@ -6,6 +6,7 @@ import { APIProvider, Map, AdvancedMarker, useMapsLibrary } from '@vis.gl/react-
 import { useDeviceState } from "../../DeviceStateContext";
 import { supabase } from '../../supabaseClient';
 import { ChevronLeft } from 'lucide-react';
+import { Button } from '../../components/ui';
 
 export default function ScheduleWalk() {
     return (
@@ -16,10 +17,11 @@ export default function ScheduleWalk() {
 }
 
 function ScheduleWalkContent() {
-    const { walkerID } = useParams();
+    const { walkerID, sessionID } = useParams();
     const location = useLocation();
     const navigate = useNavigate();
     const [requestType, setRequestType] = useState("");
+    const isEditMode = !!sessionID;
 
     const [dogs, setDogs] = useState<any[]>([]);
     const [selectedDogId, setSelectedDogId] = useState<string>("");
@@ -27,7 +29,7 @@ function ScheduleWalkContent() {
     const [selectActivity, setSelectActivity] = useState("");
     const [durationHours, setDurationHours] = useState("");
     const [dateTime, setDateTime] = useState("");
-    const compensation = "30"
+    const [compensation, setCompensation] = useState("15");
     const [instructions, setInstructions] = useState("");
 
     const [pickupAddress, setPickupAddress] = useState("");
@@ -121,7 +123,73 @@ function ScheduleWalkContent() {
         getType();
     }, [])
 
-    const sendRequest = async (): Promise<boolean> => {
+    useEffect(() => {
+        if (!isEditMode || !sessionID) return;
+
+        const loadSession = async () => {
+            const { data, error } = await supabase
+                .from("sessions")
+                .select("*")
+                .eq("id", sessionID)
+                .single();
+
+            if (error) {
+                console.error("Error loading session:", error);
+                return;
+            }
+
+            setSelectedDogId(data.pet_id);
+            setSelectActivity(data.activity || "");
+            setDurationHours((data.duration_minutes / 60).toString());
+            setDateTime(data.start_time.slice(0, 16)); // datetime-local format
+            setCompensation(data.compensation.toString());
+            setInstructions(data.special_instructions || "");
+
+            if (data.meeting_location) {
+                setPickupAddress(data.meeting_location.address || "");
+                setPickupLocation(data.meeting_location);
+            }
+
+            if (data.dropoff_location) {
+                setDropoffAddress(data.dropoff_location.address || "");
+                setDropoffLocation(data.dropoff_location);
+            }
+        };
+
+        loadSession();
+    }, [isEditMode, sessionID]);
+
+
+    const handleUpdateSession = async () => {
+        if (!sessionID) return;
+
+        const startIso = new Date(dateTime).toISOString();
+
+        const { error } = await supabase
+            .from("sessions")
+            .update({
+                pet_id: selectedDogId,
+                activity: selectActivity,
+                duration_minutes: Math.round(parseFloat(durationHours) * 60),
+                start_time: startIso,
+                compensation: Number(compensation),
+                meeting_location: pickupLocation,
+                dropoff_location: dropoffLocation,
+                special_instructions: instructions
+            })
+            .eq("id", sessionID);
+
+        if (error) {
+            console.error("Update error:", error);
+            alert("Could not update walk.");
+            return;
+        }
+
+        alert("Walk updated!");
+        navigate("/my-sessions");
+    };
+
+    const sendRequest = async (type: string): Promise<boolean> => {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return false;
 
@@ -129,6 +197,11 @@ function ScheduleWalkContent() {
             dateTime
                 ? new Date(dateTime).toISOString()
                 : new Date().toISOString();
+
+        if (!compensation || Number(compensation) <= 0) {
+            alert("Please enter a valid compensation amount.");
+            return false;
+        }       
 
         const { error } = await supabase.from('sessions').insert({
             owner_id: user.id,
@@ -141,7 +214,8 @@ function ScheduleWalkContent() {
             activity: selectActivity || null,
             meeting_location: pickupLocation,
             dropoff_location: dropoffLocation,
-            special_instructions: instructions || null
+            special_instructions: instructions || null,
+            type: type
         });
 
         if (error) {
@@ -171,12 +245,14 @@ function ScheduleWalkContent() {
 
         try {
             setSubmitting(true);
-            setState("BROADCAST");
+            // setState("BROADCAST");
 
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
             const nowIso = new Date().toISOString();
+
+            const type = walkerID ? "schedule" : "broadcast";
 
             const { data, error } = await supabase
                 .from('sessions')
@@ -192,7 +268,7 @@ function ScheduleWalkContent() {
                     meeting_location: pickupLocation,
                     dropoff_location: dropoffLocation,
                     special_instructions: instructions || null,
-                    type: 'broadcast'
+                    type: type
                 })
                 .select('id');
 
@@ -219,7 +295,7 @@ function ScheduleWalkContent() {
     const handleSelect = async () => {
         try {
             setSubmitting(true);
-            const response = await sendRequest();
+            const response = await sendRequest("schedule");
             if (response) navigate('/owner/dashboard/');
         } finally {
             setSubmitting(false);
@@ -294,6 +370,21 @@ function ScheduleWalkContent() {
                         placeholder="e.g. 2.5"
                         defaultValue={durationHours}
                         onChange={(e) => setDurationHours(e.target.value)}
+                    />
+                </div>
+
+                <div className="flex justify-between items-center m-5 p-1 rounded-md bg-white border border-gray-300">
+                    <label htmlFor="compensation">Compensation ($/hr):</label>
+                    <input
+                        type="number"
+                        id="compensation"
+                        name="compensation"
+                        min="0"
+                        step="1"
+                        placeholder="Enter amount"
+                        value={compensation}
+                        onChange={(e) => setCompensation(e.target.value)}
+                        className="w-24 text-right"
                     />
                 </div>
                 {requestType === "select" && (
@@ -395,22 +486,31 @@ function ScheduleWalkContent() {
                 </div>
 
                 <div className="flex justify-center w-full">
-                    {requestType === 'broadcast' && (
-                        <button
-                            className="p-4 rounded-3xl bg-worange disabled:opacity-50"
+                    {!isEditMode && requestType === 'broadcast' && (
+                        <Button
+                            className="mb-6"
                             onClick={handleImmediateWalk}
                             disabled={submitting}
                         >
                             {submitting ? 'Finding walkers...' : 'Broadcast Now'}
-                        </button>
+                        </Button>
                     )}
-                    {requestType === 'select' && (
-                        <button
-                            className="p-4 rounded-3xl bg-worange disabled:opacity-50"
+                    {!isEditMode && requestType === 'select' && (
+                        <Button
+                            className="mb-6"
                             onClick={handleSelect}
                             disabled={submitting}
                         >
-                            {submitting ? 'Requesting...' : 'Request'}
+                            {submitting ? 'Requesting...' : 'Request Walk'}
+                        </Button>
+                    )}
+                    {isEditMode && (
+                        <button
+                            className="p-4 rounded-3xl bg-worange disabled:opacity-50"
+                            onClick={handleUpdateSession}
+                            disabled={submitting}
+                        >
+                            {submitting ? 'Saving...' : 'Update Walk'}
                         </button>
                     )}
                 </div>

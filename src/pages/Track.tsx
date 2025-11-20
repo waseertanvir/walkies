@@ -30,6 +30,7 @@ type Session = {
   status: string;
   start_time: string;
   duration_minutes: number;
+  activity: string;
 };
 
 type SessionDetail = {
@@ -63,6 +64,20 @@ const haversine = (a: LatLng, b: LatLng) => {
 const within20m = (a?: LatLng | null, b?: LatLng | null) =>
   !!a && !!b && haversine(a, b) <= 20;
 
+//calculating times
+function displayTime(t: Date) {
+  return (t.toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit'
+  }))
+}
+function calculateTime(minutes: number) {
+  const m = Math.floor(minutes);
+  const s = Math.floor((minutes % 1) * 60);
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+
 // draw line logic
 function WalkerPath({ path }: { path: LatLng[] }) {
   const map = useMap();
@@ -91,16 +106,26 @@ export default function Track() {
   const { id: sessionId } = useParams();
 
   const [me, setMe] = useState<{ id: string; name: string; role: Role } | null>(null);
+  const [other, setOther] = useState<{ id: string; name: string; role: Role } | null>(null);
+  const [dog, setDog] = useState<{ id: string; name: string; breed: Role } | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
   const [session, setSession] = useState<Session | null>(null);
+  const [sessionStatus, setSessionStatus] = useState<string>();
+  const [start, setStart] = useState<Date>();
+  const [end, setEnd] = useState<Date>();
+
+
   const [users, setUsers] = useState<UserLocation[]>([]);
   const [myPosition, setMyPosition] = useState<LatLng | null>(null);
   const [path, setPath] = useState<LatLng[]>([]);
-  const [sessionStatus, setSessionStatus] = useState<string>();
+  const center = useMemo<LatLng>(() => myPosition ?? { lat: 49.24, lng: -123.05 }, [myPosition]);
+
   const [isLoaded, setIsLoaded] = useState(false);
   const intervalRef = useRef<number | null>(null);
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const center = useMemo<LatLng>(() => myPosition ?? { lat: 49.24, lng: -123.05 }, [myPosition]);
+
   const [rating, setRating] = useState(0)
   const [ratingsFormData, setRatingsFormData] = useState({
     rating: 0,
@@ -109,6 +134,8 @@ export default function Track() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [chatInput, setChatInput] = useState("");
 
+  const chatRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -116,38 +143,58 @@ export default function Track() {
         navigate('/login');
         return;
       }
-
-      const { data: profile } = await supabase
+      // get me
+      const { data: myProfile } = await supabase
         .from('profiles')
         .select('full_name, role, avatar_url')
         .eq('id', user.id)
         .single();
-
-      setMe({ id: user.id, name: profile?.full_name ?? '', role: profile?.role ?? '' });
-
-      if (profile?.role === 'walker') {
-        const { data } = await supabase
-          .from('profiles')
-          .select('full_name, role, avatar_url')
-          .eq('id', session?.owner_id)
-          .single();
-
-        setAvatarUrl(data?.avatar_url ?? null);
-      } else {
-        setAvatarUrl(profile?.avatar_url ?? null);
-      }
-
+      setMe({ id: user.id, name: myProfile?.full_name ?? '', role: myProfile?.role ?? '' });
+      // get session
       const { data: s } = await supabase.from('sessions').select('*').eq('id', sessionId).single();
-      if (!s && me?.role == "walker") {
+      setSession(s);
+      setSessionStatus(s.status);
+      // redirect if no session
+      if (!s && myProfile?.role == "walker") {
         navigate('/walker/dashboard');
         return;
-      } else if (!s && me?.role == "owner") {
+      } else if (!s && myProfile?.role == "owner") {
         navigate('/owner/dashboard');
         return;
       }
 
-      setSession(s);
-      setSessionStatus(s.status);
+      //set other
+      if (myProfile?.role == 'owner') {
+        const { data: otherProfile } = await supabase
+          .from('profiles')
+          .select('full_name, role, avatar_url')
+          .eq('id', s?.walker_id)
+          .single();
+        setOther({ id: s?.walker_id ?? '', name: otherProfile?.full_name ?? '', role: otherProfile?.role ?? '' });
+        // avatar is always other persons
+        setAvatarUrl(otherProfile?.avatar_url ?? null);
+        console.log(otherProfile)
+      } else if (myProfile?.role == 'walker') {
+        const { data: otherProfile } = await supabase
+          .from('profiles')
+          .select('full_name, role, avatar_url')
+          .eq('id', s?.owner_id)
+          .single();
+        setOther({ id: s?.owner_id ?? '', name: otherProfile?.full_name ?? '', role: otherProfile?.role ?? '' });
+        // avatar is always other persons
+        setAvatarUrl(otherProfile?.avatar_url ?? null);
+        console.log(otherProfile)
+      }
+
+
+      const { data: dogData } = await supabase
+        .from('pets')
+        .select('id, name, breed')
+        .eq('id', s?.pet_id)
+        .single();
+
+      setDog({ id: dogData?.id, name: dogData?.name, breed: dogData?.breed });
+
       setIsLoaded(true);
     })();
   }, [navigate, sessionId]);
@@ -171,7 +218,7 @@ export default function Track() {
   }, [sessionId]);
 
   useEffect(() => {
-    if (!sessionId||!me) return;
+    if (!sessionId || !me) return;
 
     const channel = supabase
       .channel(`messages:${sessionId}`)
@@ -218,10 +265,14 @@ export default function Track() {
 
       // if this is the walker, update the polyline path
       if (session?.walker_id && p.userID === session.walker_id && sessionStatus === WalkStatus.InProgress) {
-        console.log(payload)
+        console.log('Walker location received:', p.position);
         setPath((prev) => {
           const last = prev[prev.length - 1];
-          if (!last || haversine(last, p.position) >= 1) return [...prev, p.position];
+          if (!last || haversine(last, p.position) >= 1) {
+            const newPath = [...prev, p.position];
+            console.log(`Path updated: ${newPath.length} points`);
+            return newPath;
+          }
           return prev;
         });
       }
@@ -271,13 +322,11 @@ export default function Track() {
 
   const ownerPos = users.find((u) => u.role === 'owner')?.position ?? null;
   const walkerPos = users.find((u) => u.role === 'walker')?.position ?? null;
-  const iAmWalker = me?.role === 'walker' && session?.walker_id === me.id;
 
-  const canStart =
-    iAmWalker && session?.status === 'accepted' && within20m(ownerPos, walkerPos) && sessionStatus !== WalkStatus.InProgress;
+  const canStart = session?.status === WalkStatus.Accepted && within20m(ownerPos, walkerPos) && sessionStatus !== WalkStatus.InProgress;
 
   const canEnd = (() => {
-    if (!session || !iAmWalker || session.status !== WalkStatus.InProgress) return false;
+    if (!session || session.status !== WalkStatus.InProgress) return false;
     const end = new Date(session.start_time);
     end.setMinutes(end.getMinutes() + session.duration_minutes);
     return within20m(ownerPos, walkerPos) && new Date() >= end;
@@ -286,10 +335,17 @@ export default function Track() {
   const startWalk = async () => {
     if (!session) return;
 
-    await supabase.from('sessions')
-      .update({ status: WalkStatus.InProgress })
-      .eq('id', session.id);
+    const { data, error } = await supabase
+      .from('sessions')
+      .update({ status: WalkStatus.InProgress }) // must match your DB enum/text exactly
+      .eq('id', sessionId)
+      .select('id, status');          // optional: see what came back
 
+    if (error) {
+      console.error('Supabase update error:', error);
+      return;
+    }
+    console.log(data)
     setSession({ ...session, status: WalkStatus.InProgress });
     setSessionStatus(WalkStatus.InProgress)
   };
@@ -304,12 +360,23 @@ export default function Track() {
   const endWalk = async () => {
     if (!session) return;
 
-    await supabase.from('sessions')
+    console.log('endWalk called - path length:', path.length);
+    console.log('Current path:', path);
+
+    const { data } = await supabase
+      .from('sessions')
       .update({
-        status: WalkStatus.Rate
+        status: WalkStatus.Rate,
+        end_time: Date.now()
       })
+      .select('start_time, end_time')
       .eq('id', session.id);
 
+    if (data != null) {
+      const row = data![0];
+      setStart(new Date(row.start_time));
+      setEnd(new Date(row.end_time));
+    }
 
     const result: SessionDetail[] = [];
 
@@ -323,17 +390,36 @@ export default function Track() {
       });
     }
 
-    const { error } = await supabase.from('session_detail')
-      .insert(result)
-      .eq('id', session.id);
+    console.log(`Preparing to save ${result.length} location points to session_detail`);
 
-    console.log("Going to persist data in session_detail: " + result);
+    if (result.length === 0) {
+      console.warn('WARNING: No location points to save! Path array is empty.');
+      alert('Warning: No location data was collected during this walk.');
+    } else {
+      const { error } = await supabase
+        .from('session_detail')
+        .insert(result);
 
-    if (error) console.error('Insert failed:', error);
+      if (error) {
+        console.error('Insert failed:', error);
+        console.error('Error code:', error.code);
+        console.error('Error message:', error.message);
+        alert('Error saving location data: ' + error.message);
+      } else {
+        console.log(`Successfully saved ${result.length} location points to session_detail`);
+      }
+    }
 
     setSession({ ...session, status: WalkStatus.Rate });
     setSessionStatus(WalkStatus.Rate);
   };
+
+  useEffect(() => {
+    if (chatRef.current) {
+      chatRef.current.scrollTop = chatRef.current.scrollHeight;
+    }
+  }, [messages]);
+
 
   if (!isLoaded)
     return (
@@ -381,10 +467,10 @@ export default function Track() {
       if (data != null && data.status == WalkStatus.InProgress) {
         setSessionStatus(WalkStatus.InProgress);
         stopInterval()
-        startCheckingForWalkEnd();
       }
 
     }, 2000);
+    return;
   }
 
   const startCheckingForWalkEnd = async () => {
@@ -404,10 +490,15 @@ export default function Track() {
       }
 
     }, 2000);
+    return;
   }
 
   if (sessionStatus == WalkStatus.Pending) {
     startCheckingForWalkerRequests()
+  } else if (sessionStatus == WalkStatus.Accepted) {
+    startCheckingForWalkStart()
+  } else if (sessionStatus == WalkStatus.InProgress) {
+    startCheckingForWalkEnd()
   }
 
   const handleSkipReviewButtonClick = () => {
@@ -488,29 +579,34 @@ export default function Track() {
 
   return (
     <ProtectedRoute>
-      {me?.role === 'owner' && <OwnerMenu />}
-      {me?.role === 'walker' && <WalkerMenu />}
+      {me?.role === "owner" && <OwnerMenu />}
+      {me?.role === "walker" && <WalkerMenu />}
 
       <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}>
         <Map
           mapId={import.meta.env.VITE_GOOGLE_MAP_ID}
-          style={{ width: '100vw', height: '75%' }}
+          style={{ width: "100vw", height: "78%" }}
           defaultCenter={center}
           defaultZoom={16}
           disableDefaultUI
           clickableIcons={false}
         >
           {users.map((u) => {
-            const color = u.role === 'walker' ? '#007BFF' : u.role === 'owner' ? '#28A745' : '#6C757D';
+            const color =
+              u.role === "walker"
+                ? "#007BFF"
+                : u.role === "owner"
+                  ? "#28A745"
+                  : "#6C757D";
             return (
               <AdvancedMarker key={u.userID} position={u.position}>
                 <div
                   style={{
                     width: 16,
                     height: 16,
-                    borderRadius: '50%',
+                    borderRadius: "50%",
                     backgroundColor: color,
-                    border: '2px solid white',
+                    border: "2px solid white",
                   }}
                   title={u.name}
                 />
@@ -533,41 +629,170 @@ export default function Track() {
                 style={{
                   width: 20,
                   height: 20,
-                  borderRadius: '50%',
-                  backgroundColor: '#FE7F2D',
-                  border: '3px solid white',
+                  borderRadius: "50%",
+                  backgroundColor: "#FE7F2D",
+                  border: "3px solid white",
                 }}
                 title="You"
               />
             </AdvancedMarker>
           )}
 
-          {sessionStatus === WalkStatus.InProgress && path.length > 1 && <WalkerPath path={path} />}
+          {sessionStatus === WalkStatus.InProgress && path.length > 1 && (
+            <WalkerPath path={path} />
+          )}
         </Map>
       </APIProvider>
 
-      {/* WALKER VIEW */} 
-      {me?.role === "walker" && (
-        <>
-          {sessionStatus === WalkStatus.Accepted && (
-            <div className="absolute bottom-0 w-full bg-wsage p-5 rounded-t-xl">
-              <div className="flex flex-col items-center gap-4">
-                <button
-                  onClick={startWalk}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-md w-full text-center"
-                >
-                  Start Walk
-                </button>
-              </div>
+      {/* Avatars always viewable, but shift up when chat is visible */}
+      <div
+        className={`absolute z-50 left-1/2 -translate-x-1/2 ${sessionStatus === WalkStatus.InProgress
+          ? "top-[47%]" : "top-[65%]"
+          }`}
+      >
+        <div
+          className="
+          w-[125px] h-[125px] rounded-full 
+          border-4 border-yellow-400 
+          bg-gray-700 flex items-center justify-center"
+        >
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt={me?.name ?? "Profile"}
+              className="w-full h-full rounded-full object-cover"
+            />
+          ) : (
+            <span className="text-white text-sm">No Image</span>
+          )}
+        </div>
+        <p className="text-center text-yellow-500 font-bold text-1xl p-3">
+          {other?.name}
+        </p>
+      </div>
+
+      <div className={`absolute bottom-0 w-full ${sessionStatus === WalkStatus.InProgress
+        ? "h-[46%]" : "h-[35%]"
+        } rounded-t-xl bg-wsage p-5`}>
+        <div className="flex flex-col items-center justify-center h-full w-full space-y-4">
+          {/* WALKER VIEW */}
+          {me?.role === "walker" && (
+            <>
+              {sessionStatus === WalkStatus.Accepted && (
+                <div className="absolute bottom-0 w-full bg-wsage p-5 rounded-t-xl">
+                  <div className="flex flex-col items-center gap-4">
+                    <button
+                      onClick={startWalk}
+                      className="bg-blue-600 text-white px-4 py-2 rounded-md w-full text-center"
+                    >
+                      Start Walk
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {sessionStatus === WalkStatus.InProgress && (
+                <div className="absolute bottom-0 w-full bg-wsage p-5 rounded-t-xl">
+                  <div className="flex flex-col gap-4">
+                    {/* Chat box */}
+                    <div ref={chatRef} className="w-full h-32 bg-gray-700/60 rounded-md p-2 overflow-y-auto text-left">
+                      {messages.length === 0 ? (
+                        <p className="text-gray-300 text-sm text-center mt-4">
+                          Start the conversation…
+                        </p>
+                      ) : (
+                        messages.map((m) => (
+                          <div
+                            key={m.id}
+                            className={`text-sm my-1 ${m.sender_id === me.id
+                              ? "text-blue-300 text-right"
+                              : "text-white text-left"
+                              }`}
+                          >
+                            {m.message}
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    {/* Chat Input */}
+                    <div className="flex">
+                      <input
+                        type="text"
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        placeholder="Message..."
+                        className="flex-grow bg-gray-700 text-white px-3 py-2 rounded-l-md focus:outline-none"
+                      />
+                      <button
+                        onClick={sendMessage}
+                        className="bg-blue-600 text-white px-4 rounded-r-md"
+                      >
+                        Send
+                      </button>
+                    </div>
+
+                    {/* End Walk */}
+                    <button
+                      onClick={endWalk}
+                      className="bg-orange-500 text-white px-4 py-2 rounded-md w-full text-center"
+                    >
+                      End Walk
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* STATUS: PENDING */}
+          {me?.role === "owner" && sessionStatus === WalkStatus.Pending && (
+            <div className="w-full flex justify-center">
+              <Loader />
+            </div>
+          )}
+          {me?.role === "walker" && sessionStatus === WalkStatus.Pending && (
+            <div className="invisible w-full flex justify-center">
+              <Loader />
+            </div>
+          )}
+          {sessionStatus === WalkStatus.Pending && (
+            <div className="text-white font-medium py-2 px-4 rounded-md text-center">
+              REQUESTED
             </div>
           )}
 
-          {sessionStatus === WalkStatus.InProgress && (
+          {/* STATUS: ACCEPTED */}
+          {me?.role === "owner" &&
+            sessionStatus === WalkStatus.Accepted &&
+            ownerPos &&
+            walkerPos && (
+              <div className="text-white font-medium py-2 px-4 rounded-md text-center">
+                ETA: {ownerPos && walkerPos ? haversine(ownerPos, walkerPos) : 0 / 100}{" "}
+                Mins
+              </div>
+            )}
+          {me?.role === "walker" &&
+            sessionStatus === WalkStatus.Accepted &&
+            ownerPos &&
+            walkerPos && (
+              <div className="invisible text-white font-medium py-2 px-4 rounded-md text-center">
+                ETA: {ownerPos && walkerPos ? haversine(ownerPos, walkerPos) : 0 / 100}{" "}
+                Mins
+              </div>
+            )}
+          {sessionStatus === WalkStatus.Accepted && (
+            <div className="text-white font-medium py-2 px-4 rounded-md text-center">
+              ACCEPTED
+            </div>
+          )}
+
+          {/* OWNER VIEW: IN PROGRESS (chat styled same as walker) */}
+          {me?.role === "owner" && sessionStatus === WalkStatus.InProgress && (
             <div className="absolute bottom-0 w-full bg-wsage p-5 rounded-t-xl">
               <div className="flex flex-col gap-4">
-
-                {/* Chat box */}
-                <div className="w-full h-32 bg-gray-700/60 rounded-md p-2 overflow-y-auto text-left">
+                {/* Messages */}
+                <div ref={chatRef} className="w-full h-32 bg-gray-700/60 rounded-md p-2 overflow-y-auto text-left">
                   {messages.length === 0 ? (
                     <p className="text-gray-300 text-sm text-center mt-4">
                       Start the conversation…
@@ -576,11 +801,10 @@ export default function Track() {
                     messages.map((m) => (
                       <div
                         key={m.id}
-                        className={`text-sm my-1 ${
-                          m.sender_id === me.id
-                            ? "text-blue-300 text-right"
-                            : "text-white text-left"
-                        }`}
+                        className={`text-sm my-1 ${m.sender_id === me.id
+                          ? "text-blue-300 text-right"
+                          : "text-white text-left"
+                          }`}
                       >
                         {m.message}
                       </div>
@@ -588,8 +812,8 @@ export default function Track() {
                   )}
                 </div>
 
-                {/* Chat Input */}
-                <div className="flex">
+                {/* Input */}
+                <div className="w-full flex">
                   <input
                     type="text"
                     value={chatInput}
@@ -604,315 +828,89 @@ export default function Track() {
                     Send
                   </button>
                 </div>
-
-                {/* End Walk */}
-                <button
-                  onClick={endWalk}
-                  className="bg-orange-500 text-white px-4 py-2 rounded-md w-full text-center"
-                >
-                  End Walk
-                </button>
-
               </div>
             </div>
           )}
-        </>
-      )}
 
-      {/* {me?.role === 'walker' && (
-        <div className="absolute bottom-0 w-full h-25% rounded-t-xl rounded-b-none bg-wsage p-5">
-          <div className='grid items-center justify-center h-full w-full'>
-            <div className="absolute flex gap-2">
-              <button
-                onClick={startWalk}
-                className={`px-3 py-1 rounded ${true ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-600'
-                  }`}
-              >
-                Start Walk
-              </button>
-
-              <button
-                onClick={endWalk}
-                className={`px-3 py-1 rounded ${true ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-600'
-                  }`}
-              >
-                End Walk
-              </button>
-            </div>
-
-            {avatarUrl ? (
-              <img src={avatarUrl} alt={me?.name ?? 'Profile'}
-                className="relative left-1/2 -top-20 transform -translate-x-1/2 max-w-[125px] max-h-[125px] w-full h-auto
-                rounded-full border-4 border-yellow-400 object-cover"/>
-            ) : (
-              <span className="text-white text-xl absolute left-1/2 -translate-x-1/2 -top-16">
-                No Image
-              </span>
+          {/* TIME + IN PROGRESS LABEL */}
+          {me?.role === "walker" &&
+            sessionStatus === WalkStatus.InProgress &&
+            start && (
+              <div className="invisible text-white font-medium py-2 px-4 rounded-md text-center">
+                TIME REMAINING:{" "}
+                {calculateTime((Date.now() - start.getTime()) / 60000)}
+              </div>
             )}
-
-            <img
-              src={logo}
-              alt="Logo"
-              className="
-                absolute          
-                top-0 right-0     
-                m-5     
-                max-h-10         
-                max-w-10      
-                h-auto
-                "
-            />
-
-            <p className="absolute inset-x-0 top-20 text-center text-yellow-500 font-bold text-1xl">
-              Franklin
-            </p>
-
-            <div className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-md text-center">
-              ??
+          {sessionStatus === WalkStatus.InProgress && (
+            <div className="text-white font-medium py-2 px-4 rounded-md text-center">
+              IN PROGRESS
             </div>
-          </div>
-        </div>
-      )} */}
+          )}
 
-      {me?.role === 'owner' && sessionStatus === WalkStatus.Pending && (
-        <div className="absolute bottom-0 w-full h-25% rounded-t-xl rounded-b-none bg-wsage p-5">
-          <div className='grid items-center justify-center h-full w-full'>
-            {avatarUrl ? (
-              <img src={avatarUrl} alt={me?.name ?? 'Profile'} className="relative left-1/2 -top-20 transform -translate-x-1/2 max-w-[125px] max-h-[125px] w-full h-auto
-                rounded-full border-4 border-yellow-400 object-cover"/>
-            ) : (
-              <span className="text-white text-xl absolute left-1/2 -translate-x-1/2 -top-16">
-                No Image
-              </span>
-            )}
-
-            <img
-              src={logo}
-              alt="Logo"
-              className="
-                absolute          
-                top-0 right-0     
-                m-5     
-                max-h-10         
-                max-w-10      
-                h-auto
-                "
-            />
-
-            <p className="absolute inset-x-0 top-20 text-center text-yellow-500 font-bold text-1xl">
-              Franklin
-            </p>
-
-            <div className='relative w-full -top-5'>
-              <Loader />
-            </div>
-
-            <div className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-md text-center">
-              REQUESTED
-            </div>
-          </div>
-        </div>
-      )}
-
-      {me?.role === 'owner' && sessionStatus === WalkStatus.Accepted && (
-        <div className="absolute bottom-0 w-full h-auto rounded-t-xl rounded-b-none bg-wsage p-5">
-          <div className='grid items-center justify-center h-full w-full'>
-            {avatarUrl ? (
-              <img src={avatarUrl} alt={me?.name ?? 'Profile'} className="relative left-1/2 -top-20 transform -translate-x-1/2 max-w-[125px] max-h-[125px] w-full h-auto
-                rounded-full border-4 border-yellow-400 object-cover"/>
-            ) : (
-              <span className="text-white text-xl absolute left-1/2 -translate-x-1/2 -top-16">
-                No Image
-              </span>
-            )}
-
-            <img
-              src={logo}
-              alt="Logo"
-              className="
-                absolute          
-                top-0 right-0     
-                m-5     
-                max-h-10         
-                max-w-10      
-                h-auto
-                "
-            />
-
-            <p className="absolute inset-x-0 top-20 text-center text-yellow-500 font-bold text-1xl">
-              Franklin
-            </p>
-
-            <div className="relative w-full -top-5 text-center">
-              <p className="text-3xl text-white">ETA: anytime soon</p>
-            </div>
-
-            <div
-              className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-md text-center">
-              Accepted
-            </div>
-          </div>
-        </div>
-      )}
-
-
-      {me?.role === 'owner' && sessionStatus === WalkStatus.InProgress && (
-        <div className="absolute bottom-0 w-full h-auto rounded-t-xl rounded-b-none bg-wsage p-5">
-          <div className='grid items-center justify-center h-full w-full'>
-            {avatarUrl ? (
-              <img src={avatarUrl} alt={me?.name ?? 'Profile'} className="relative left-1/2 -top-20 transform -translate-x-1/2 max-w-[125px] max-h-[125px] w-full h-auto
-                rounded-full border-4 border-yellow-400 object-cover"/>
-            ) : (
-              <span className="text-white text-xl absolute left-1/2 -translate-x-1/2 -top-16">
-                No Image
-              </span>
-            )}
-
-            <img
-              src={logo}
-              alt="Logo"
-              className="
-                absolute          
-                top-0 right-0     
-                m-5     
-                max-h-10         
-                max-w-10      
-                h-auto
-                "
-            />
-
-            <p className="absolute inset-x-0 top-20 text-center text-yellow-500 font-bold text-1xl">
-              Franklin
-            </p>
-
-            <div className="relative w-full -top-5 flex flex-col items-center px-4">
-
-              {/* Messages */}
-              <div className="w-full h-32 bg-gray-700/60 rounded-md p-2 overflow-y-auto text-left">
-                {messages.length === 0 ? (
-                  <p className="text-gray-300 text-sm text-center mt-4">Start the conversation…</p>
-                ) : (
-                  messages.map((m) => (
-                    <div
-                      key={m.id}
-                      className={`text-sm my-1 ${
-                        m.sender_id === me.id ? "text-blue-300 text-right" : "text-white text-left"
-                      }`}
-                    >
-                      {m.message}
-                    </div>
-                  ))
+          {/* OWNER VIEW: RATE */}
+          {me?.role === "owner" && sessionStatus === WalkStatus.Rate && (
+            <>
+              <div className="relative w-full -top-5 text-left">
+                <p className="text-1xl text-white">Dog: {dog?.name}</p>
+                <p className="text-1xl text-white">Breed: {dog?.breed}</p>
+                <p className="text-1xl text-white">
+                  Duration: {displayTime(start!)} - {displayTime(end!)}
+                </p>
+                {session?.activity && (
+                  <p className="text-1xl text-white">
+                    Activities: {session.activity}
+                  </p>
                 )}
               </div>
 
-              {/* Input */}
-              <div className="w-full flex mt-2">
-                <input
-                  type="text"
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  placeholder="Message..."
-                  className="flex-grow bg-gray-700 text-white px-3 py-2 rounded-l-md focus:outline-none"
-                />
-                <button
-                  onClick={sendMessage}
-                  className="bg-blue-600 text-white px-4 rounded-r-md"
-                >
-                  Send
-                </button>
-              </div>
+              <form onSubmit={handleRatingFormSubmit}>
+                <div className="flex gap-4 justify-center mb-5">
+                  <Rating
+                    style={{ maxWidth: 180 }}
+                    value={rating}
+                    onChange={(value: number) => {
+                      setRatingsFormData((prev) => ({ ...prev, rating: value }));
+                      setRating(value);
+                    }}
+                  />
+                </div>
 
-            </div>
+                <div className="relative w-full h-auto border border-white-300">
+                  <input
+                    className="text-white w-75 h-50 text-center"
+                    type="text"
+                    placeholder="Enter your review here."
+                    onChange={(e) =>
+                      setRatingsFormData((prev) => ({
+                        ...prev,
+                        description: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
 
-            <div className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-md text-center">
-              Walk in progress
-            </div>
-          </div>
+                <div className="flex gap-4 justify-center mt-5">
+                  <button
+                    className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-6 rounded-md"
+                    type="button"
+                    onClick={handleSkipReviewButtonClick}
+                  >
+                    Skip
+                  </button>
+
+                  <button
+                    className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-6 rounded-md"
+                    type="submit"
+                  >
+                    Submit
+                  </button>
+                </div>
+              </form>
+            </>
+          )}
         </div>
-      )}
-
-      {me?.role === 'owner' && sessionStatus === WalkStatus.Rate && (
-        <div className="absolute bottom-0 w-full h-auto rounded-t-xl rounded-b-none bg-wsage p-5">
-          <div className='grid items-center justify-center h-full w-full'>
-            {avatarUrl ? (
-              <img src={avatarUrl} alt={me?.name ?? 'Profile'} className="relative left-1/2 -top-20 transform -translate-x-1/2 max-w-[125px] max-h-[125px] w-full h-auto
-                rounded-full border-4 border-yellow-400 object-cover"/>
-            ) : (
-              <span className="text-white text-xl absolute left-1/2 -translate-x-1/2 -top-16">
-                No Image
-              </span>
-            )}
-
-            <img
-              src={logo}
-              alt="Logo"
-              className="
-                absolute          
-                top-0 right-0     
-                m-5     
-                max-h-10         
-                max-w-10      
-                h-auto
-                "
-            />
-
-            <p className="absolute inset-x-0 top-20 text-center text-yellow-500 font-bold text-1xl">
-              Franklin
-            </p>
-
-            <div className="relative w-full -top-5 text-left">
-              <p className="text-1xl text-white">Dog: Rover</p>
-
-              <p className="text-1xl text-white">Duration: 11:30 - 12:35</p>
-
-              <p className="text-1xl text-white">Activities: Walk</p>
-            </div>
-
-            <div className="flex gap-4 justify-center mb-5">
-              <p className="text-1xl text-white">Please provide us with a rating.</p>
-            </div>
-
-            <form onSubmit={handleRatingFormSubmit}>
-
-              <div className="flex gap-4 justify-center mb-5">
-                <Rating
-                  style={{ maxWidth: 180 }}
-                  value={rating}
-                  onChange={(value: number) => {
-                    setRatingsFormData(prev => ({ ...prev, rating: value }));
-                    setRating(value);
-                  }
-                  }
-                />
-              </div>
-
-              <div className='relative w-full h-auto border border-white-300'>
-                <input className='text-white w-75 h-50 text-center'
-                  type='text'
-                  placeholder='Enter your review here.'
-                  onChange={(e) => setRatingsFormData(prev => ({ ...prev, description: e.target.value }))}>
-                </input>
-              </div>
-
-              <div className="flex gap-4 justify-center mt-5">
-                <button
-                  className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-6 rounded-md"
-                  type="button"
-                  onClick={handleSkipReviewButtonClick}
-                >
-                  Skip
-                </button>
-
-                <button
-                  className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-6 rounded-md"
-                  type="submit">
-                  Submit
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      </div>
     </ProtectedRoute>
   );
+
 }

@@ -1,25 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { supabase } from '../supabaseClient';
-import ProtectedRoute from '../auth/ProtectedRoute';
-import { Card, Button, StatusPill } from '../components/ui';
+import { supabase } from '../../supabaseClient';
+import ProtectedRoute from '../../auth/ProtectedRoute';
+import { Card, Button, StatusPill } from '../../components/ui';
 import { ChevronLeft } from 'lucide-react';
+import { WalkStatus } from '../../constants/WalkStatus';
 
 interface Session {
   id: string;
   status: string;
   start_time: string;
+  end_time: string | null;
   duration_minutes: number;
   compensation: number;
   notes: string;
   meeting_location: string;
   special_instructions: string;
-  applications: string[];
   walker_id: string | null;
   pet_id: string;
   owner_id: string;
   created_at: string;
-  type: string;
 }
 
 interface Pet {
@@ -33,7 +33,7 @@ interface WalkerProfile {
   full_name: string;
 }
 
-export default function MySessions() {
+export default function OwnerHistory() {
   const navigate = useNavigate();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [pets, setPets] = useState<Record<string, Pet>>({});
@@ -41,21 +41,27 @@ export default function MySessions() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchSessions = async () => {
+    const fetchCompletedWalks = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from('sessions')
           .select('*')
           .eq('owner_id', user.id)
-          .eq('is_deleted', false)
-          .order('created_at', { ascending: false });
+          .eq('status', WalkStatus.Completed)
+          .order('end_time', { ascending: false });
 
-        console.log('MySessions - Raw sessions data:', data);
-        console.log('MySessions - User ID:', user.id);
-        console.log('MySessions - Applications in each session:', data?.map(s => ({ id: s.id, applications: s.applications })));
+        if (error) {
+          console.error('Error fetching completed walks:', error);
+          console.log('Error code:', error.code);
+          console.log('Error message:', error.message);
+        } else {
+          console.log(`Found ${data?.length || 0} completed walks`);
+          console.log('WalkStatus.Completed value:', WalkStatus.Completed);
+        }
+
         setSessions(data || []);
 
         // Fetch pets data
@@ -91,55 +97,34 @@ export default function MySessions() {
           }
         }
       } catch (error) {
-        console.error('Error fetching sessions:', error);
+        console.error('Error fetching completed walks:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchSessions();
+    fetchCompletedWalks();
   }, []);
 
   const formatDateTime = (dateString: string) => {
     return new Date(dateString).toLocaleString();
   };
 
-  const handleViewApplications = (sessionId: string) => {
-    navigate(`/applications/${sessionId}`);
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString();
   };
 
-  const handleEditSession = (sessionId: string) => {
-    navigate(`/owner/schedule/edit-session/${sessionId}`);
-  };
-
-  const handleDeleteSession = async (sessionId: string) => {
-    if (!confirm('Are you sure you want to delete this session?')) return;
-
-    try {
-      const { error } = await supabase
-        .from('sessions')
-        .update({ is_deleted: true })
-        .eq('id', sessionId);
-
-      if (error) {
-        console.log(error);
-        alert('Failed to remove session.');
-        return;
-      }
-
-      setSessions(prev => prev.filter(session => session.id !== sessionId));
-      alert('Session deleted successfully!');
-    } catch (error) {
-      console.error('Unexpected error:', error);
-      alert('Unexpected error deleting session');
-    }
+  const handleViewDetails = (sessionId: string) => {
+    navigate(`/walk-history/${sessionId}`);
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-wblue flex items-center justify-center">
-        <div className="text-white text-xl">Loading sessions...</div>
-      </div>
+      <ProtectedRoute>
+        <div className="min-h-screen bg-wblue flex items-center justify-center">
+          <div className="text-white text-xl">Loading walk history...</div>
+        </div>
+      </ProtectedRoute>
     );
   }
 
@@ -148,18 +133,14 @@ export default function MySessions() {
       <div className="min-h-screen bg-wblue p-4">
         <div className="max-w-4xl mx-auto">
           <div className="relative mb-6">
-            {/* <Button variant="secondary" onClick={() => navigate('/')} className="mr-4">
-              ← Back to Dashboard
-            </Button> */}
             <button
               onClick={() => navigate('/owner/dashboard')}
               className="fixed top-4 left-4 z-50 bg-wolive text-black p-2 rounded-full shadow-lg hover:bg-green-600 transition"
             >
               <ChevronLeft size={30} />
             </button>
-            {/* <h1 className="text-2xl font-bold text-white ">My Sessions</h1> */}
             <div className="flex justify-center">
-              <h1 className="text-2xl font-bold text-white text-center mt-2">Scheduled Walks</h1>
+              <h1 className="text-2xl font-bold text-white text-center mt-2">Walk History</h1>
             </div>
           </div>
 
@@ -169,17 +150,14 @@ export default function MySessions() {
                 <div className="w-16 h-16 bg-wyellow rounded-full flex items-center justify-center text-white text-2xl mx-auto mb-4">
                   🐕
                 </div>
-                <h3 className="text-lg font-semibold text-wblue mb-2">No Sessions Yet</h3>
-                <p className="text-gray-600 mb-4">You haven't created any walk sessions yet.</p>
-                <Button onClick={() => navigate('/requests/new')}>
-                  Create Your First Session
-                </Button>
+                <h3 className="text-lg font-semibold text-wblue mb-2">No Completed Walks Yet</h3>
+                <p className="text-gray-600 mb-4">You haven't completed any walks yet.</p>
               </div>
             </Card>
           ) : (
             <div className="space-y-4">
               {sessions.map((session) => (
-                <Card key={session.id}>
+                <Card key={session.id} className="hover:shadow-lg transition-shadow">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-3">
@@ -192,7 +170,7 @@ export default function MySessions() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div>
                           <p className="text-sm text-gray-600">
-                            <span className="font-medium">Start Time:</span> {formatDateTime(session.start_time)}
+                            <span className="font-medium">Date:</span> {session.end_time ? formatDate(session.end_time) : formatDate(session.start_time)}
                           </p>
                           <p className="text-sm text-gray-600">
                             <span className="font-medium">Duration:</span> {session.duration_minutes} minutes
@@ -204,20 +182,21 @@ export default function MySessions() {
                         <div>
                           {session.walker_id && walkers[session.walker_id] ? (
                             <p className="text-sm text-gray-600">
-                              <span className="font-medium">Selected Walker:</span> {walkers[session.walker_id].full_name}
-                            </p>
-                          ) : session.applications && session.applications.length > 0 ? (
-                            <p className="text-sm text-wblue font-medium">
-                              <span className="font-medium">Pending Applications:</span> {session.applications.length} walker(s) waiting for review
+                              <span className="font-medium">Walker:</span> {walkers[session.walker_id].full_name}
                             </p>
                           ) : (
                             <p className="text-sm text-gray-500">
-                              <span className="font-medium">Applications:</span> No applications yet
+                              <span className="font-medium">Walker:</span> Not assigned
                             </p>
                           )}
                           {session.meeting_location && (
                             <p className="text-sm text-gray-600">
-                              <span className="font-medium">Meeting Location:</span> {session.meeting_location}
+                              <span className="font-medium">Location:</span> {session.meeting_location}
+                            </p>
+                          )}
+                          {session.end_time && (
+                            <p className="text-sm text-gray-600">
+                              <span className="font-medium">Completed:</span> {formatDateTime(session.end_time)}
                             </p>
                           )}
                         </div>
@@ -230,45 +209,16 @@ export default function MySessions() {
                           </p>
                         </div>
                       )}
-
-                      {session.special_instructions && (
-                        <div className="mb-3">
-                          <p className="text-sm text-gray-600">
-                            <span className="font-medium">Special Instructions:</span> {session.special_instructions}
-                          </p>
-                        </div>
-                      )}
                     </div>
 
                     <div className="ml-4 flex flex-col space-y-2">
-                      {session.applications && session.applications.length > 0 && (
-                        <Button
-                          onClick={() => handleViewApplications(session.id)}
-                          size="sm"
-                          variant="secondary"
-                        >
-                          View Applications ({session.applications.length})
-                        </Button>
-                      )}
-                      
-                      {session.status === 'pending' && (
-                        <>
-                          <Button
-                            onClick={() => handleEditSession(session.id)}
-                            size="sm"
-                            variant="secondary"
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            onClick={() => handleDeleteSession(session.id)}
-                            size="sm"
-                            variant="danger"
-                          >
-                            Delete
-                          </Button>
-                        </>
-                      )}
+                      <Button
+                        onClick={() => handleViewDetails(session.id)}
+                        size="sm"
+                        variant="secondary"
+                      >
+                        View Details
+                      </Button>
                     </div>
                   </div>
                 </Card>

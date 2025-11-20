@@ -5,13 +5,14 @@ import WalkerMenu from '../../components/walkerMenu.tsx';
 import { Card, Button, StatusPill } from '../../components/ui';
 import { useNavigate } from 'react-router';
 import '../../pages/App.css';
+import { WalkStatus } from '../../constants/WalkStatus.tsx';
 
 export interface Walk {
   id: string;
   owner_id: string;
   walker_id: string | null;
   pet_id: string;
-  status: 'draft' | 'pending' | 'accepted' | 'in_progress' | 'completed' | 'cancelled';
+  status: WalkStatus;
   start_time: string;
   duration_minutes: number;
   notes: string | null;
@@ -21,6 +22,9 @@ export interface Walk {
   created_at: string;
   updated_at: string;
   applications: string[] | null;
+  pets?: {
+    name: string;
+  };
 }
 
 type UserLocation = {
@@ -54,7 +58,7 @@ export default function WalkerDashboard() {
       // Fetch all sessions assigned to walker
       const { data, error } = await supabase
         .from('sessions')
-        .select('*')
+        .select('*, pets ( name )')
         .eq('walker_id', user.id)
         .order('start_time', { ascending: false });
 
@@ -68,7 +72,7 @@ export default function WalkerDashboard() {
 
       const walksWithFlags = (data || []).map((walk: Walk) => ({
         ...walk,
-        hasStarted: new Date(walk.start_time) <= now && walk.status !== 'completed'
+        hasStarted: new Date(walk.start_time) <= now && walk.status !== WalkStatus.Completed
       })) as (Walk & { hasStarted: boolean })[];
 
 
@@ -142,6 +146,27 @@ export default function WalkerDashboard() {
     fetchData();
   }, []);
 
+  async function handleAccept(sessionId: string): Promise<void> {
+    const { error } = await supabase
+      .from("sessions")
+      .update({ status: WalkStatus.Accepted })
+      .eq("id", sessionId);
+
+    if (error) {
+      console.error("Failed to update session:", error);
+      return;
+    }
+
+    // Update walks array locally
+    setWalks(prev =>
+      prev.map(w =>
+        w.id === sessionId
+          ? { ...w, status: WalkStatus.Accepted }
+          : w
+      )
+    );
+  }
+
   if (loading) {
     return (
       <ProtectedRoute>
@@ -178,7 +203,7 @@ export default function WalkerDashboard() {
                   }`}
               >
                 <h2 className="text-xl font-semibold text-wblue mb-1">
-                  Dog: {walk.pet_id}
+                  Dog: {walk.pets?.name}
                 </h2>
 
                 <p className="text-gray-700 text-sm mb-2">
@@ -194,7 +219,9 @@ export default function WalkerDashboard() {
                 </p>
 
                 <StatusPill status={walk.status} />
-                <Button children={'Track'} onClick={() => navigate(`/track/${walk.id}`)}></Button>
+                {walk.status == 'pending' ? (
+                  <Button children={'Accept'} onClick={() => {void handleAccept(walk.id);}}></Button>
+                ) : (<Button children={'Track'} onClick={() => navigate(`/track/${walk.id}`)}></Button>)}
               </Card>
             ))}
           </div>
