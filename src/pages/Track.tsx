@@ -309,10 +309,11 @@ export default function Track() {
       .select('start_time, end_time')
       .eq('id', session.id);
 
-    const row = data![0];
-
-    setStart(new Date(row.start_time));
-    setEnd(new Date(row.end_time));
+    if (data != null) {
+      const row = data![0];
+      setStart(new Date(row.start_time));
+      setEnd(new Date(row.end_time));
+    }
 
     const result: SessionDetail[] = [];
 
@@ -329,7 +330,7 @@ export default function Track() {
     console.log(`Preparing to save ${result.length} location points to session_detail`);
 
     if (result.length === 0) {
-      console.warn('⚠️ WARNING: No location points to save! Path array is empty.');
+      console.warn('WARNING: No location points to save! Path array is empty.');
       alert('Warning: No location data was collected during this walk.');
     } else {
       const { error } = await supabase
@@ -342,7 +343,7 @@ export default function Track() {
         console.error('Error message:', error.message);
         alert('Error saving location data: ' + error.message);
       } else {
-        console.log(`✅ Successfully saved ${result.length} location points to session_detail`);
+        console.log(`Successfully saved ${result.length} location points to session_detail`);
       }
     }
 
@@ -485,57 +486,57 @@ export default function Track() {
         <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}>
           <Map
             mapId={import.meta.env.VITE_GOOGLE_MAP_ID}
-          style={{ width: '100vw', height: '78%' }}
-          defaultCenter={center}
-          defaultZoom={16}
-          disableDefaultUI
-          clickableIcons={false}
-        >
-          {users.map((u) => {
-            const color = u.role === 'walker' ? '#007BFF' : u.role === 'owner' ? '#28A745' : '#6C757D';
-            return (
-              <AdvancedMarker key={u.userID} position={u.position}>
+            style={{ width: '100vw', height: '78%' }}
+            defaultCenter={center}
+            defaultZoom={16}
+            disableDefaultUI
+            clickableIcons={false}
+          >
+            {users.map((u) => {
+              const color = u.role === 'walker' ? '#007BFF' : u.role === 'owner' ? '#28A745' : '#6C757D';
+              return (
+                <AdvancedMarker key={u.userID} position={u.position}>
+                  <div
+                    style={{
+                      width: 16,
+                      height: 16,
+                      borderRadius: '50%',
+                      backgroundColor: color,
+                      border: '2px solid white',
+                    }}
+                    title={u.name}
+                  />
+                </AdvancedMarker>
+              );
+            })}
+
+            <TrajectoryLine
+              path={path}
+              options={{
+                strokeColor: "#ff6200ff",
+                strokeOpacity: 1.0,
+                strokeWeight: 3,
+              }}
+            />
+
+            {myPosition && (
+              <AdvancedMarker position={myPosition}>
                 <div
                   style={{
-                    width: 16,
-                    height: 16,
+                    width: 20,
+                    height: 20,
                     borderRadius: '50%',
-                    backgroundColor: color,
-                    border: '2px solid white',
+                    backgroundColor: '#FE7F2D',
+                    border: '3px solid white',
                   }}
-                  title={u.name}
+                  title="You"
                 />
               </AdvancedMarker>
-            );
-          })}
+            )}
 
-          <TrajectoryLine
-            path={path}
-            options={{
-              strokeColor: "#ff6200ff",
-              strokeOpacity: 1.0,
-              strokeWeight: 3,
-            }}
-          />
-
-          {myPosition && (
-            <AdvancedMarker position={myPosition}>
-              <div
-                style={{
-                  width: 20,
-                  height: 20,
-                  borderRadius: '50%',
-                  backgroundColor: '#FE7F2D',
-                  border: '3px solid white',
-                }}
-                title="You"
-              />
-            </AdvancedMarker>
-          )}
-
-          {sessionStatus === WalkStatus.InProgress && path.length > 1 && <WalkerPath path={path} />}
-        </Map>
-      </APIProvider>
+            {sessionStatus === WalkStatus.InProgress && path.length > 1 && <WalkerPath path={path} />}
+          </Map>
+        </APIProvider>
       ) : (
         <div className="w-full h-full flex items-center justify-center bg-gray-100">
           <div className="text-center p-4">
