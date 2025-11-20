@@ -624,14 +624,14 @@ export default function Track() {
             </div>
           )}
 
-          {me?.role === 'owner' && sessionStatus === WalkStatus.Accepted && (
+          {me?.role === 'owner' && sessionStatus === WalkStatus.Accepted && ownerPos && walkerPos && (
             <div className="text-white font-medium py-2 px-4 rounded-md text-center">
-              ETA: {haversine(ownerPos!, walkerPos!) / 100} Mins
+              ETA: {ownerPos && walkerPos ? haversine(ownerPos, walkerPos) : 0 / 100} Mins
             </div>
           )}
-          {me?.role === 'walker' && sessionStatus === WalkStatus.Accepted && (
+          {me?.role === 'walker' && sessionStatus === WalkStatus.Accepted && ownerPos && walkerPos && (
             <div className="invisible text-white font-medium py-2 px-4 rounded-md text-center">
-              ETA: {haversine(ownerPos!, walkerPos!) / 100} Mins
+              ETA: {ownerPos && walkerPos ? haversine(ownerPos, walkerPos) : 0 / 100} Mins
             </div>
           )}
           {sessionStatus === WalkStatus.Accepted && (
@@ -640,14 +640,14 @@ export default function Track() {
             </div>
           )}
 
-          {me?.role === 'owner' && sessionStatus === WalkStatus.InProgress && (
+          {me?.role === 'owner' && sessionStatus === WalkStatus.InProgress && start && (
             <div className="text-white font-medium py-2 px-4 rounded-md text-center">
-              TIME REMAINING: {calculateTime((Date.now() - start!.getTime()) / 60000)}
+              TIME REMAINING: {calculateTime((Date.now() - start.getTime()) / 60000)}
             </div>
           )}
-          {me?.role === 'walker' && sessionStatus === WalkStatus.InProgress && (
+          {me?.role === 'walker' && sessionStatus === WalkStatus.InProgress && start && (
             <div className="invisible text-white font-medium py-2 px-4 rounded-md text-center">
-              TIME REMAINING: {calculateTime((Date.now() - start!.getTime()) / 60000)}
+              TIME REMAINING: {calculateTime((Date.now() - start.getTime()) / 60000)}
             </div>
           )}
           {sessionStatus === WalkStatus.InProgress && (
