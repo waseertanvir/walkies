@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router';
-import { supabase } from '../supabaseClient';
-import ProtectedRoute from '../auth/ProtectedRoute';
-import { Card, Button, StatusPill } from '../components/ui';
-import { ChevronLeft } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router";
+import { supabase } from "../supabaseClient";
+import ProtectedRoute from "../auth/ProtectedRoute";
+import { Card, Button, StatusPill } from "../components/ui";
+import { ChevronLeft } from "lucide-react";
 
 interface Session {
   id: string;
@@ -43,55 +43,61 @@ export default function MySessions() {
   useEffect(() => {
     const fetchSessions = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (!user) return;
 
         const { data } = await supabase
-          .from('sessions')
-          .select('*')
-          .eq('owner_id', user.id)
-          .eq('is_deleted', false)
-          .order('created_at', { ascending: false });
+          .from("sessions")
+          .select("*")
+          .eq("owner_id", user.id)
+          .eq("is_deleted", false)
+          .neq("status", "walk_completed")
+          .order("created_at", { ascending: false });
 
-        console.log('MySessions - Raw sessions data:', data);
-        console.log('MySessions - User ID:', user.id);
-        console.log('MySessions - Applications in each session:', data?.map(s => ({ id: s.id, applications: s.applications })));
+        console.log("MySessions - Raw sessions data:", data);
+        console.log("MySessions - User ID:", user.id);
+        console.log(
+          "MySessions - Applications in each session:",
+          data?.map((s) => ({ id: s.id, applications: s.applications }))
+        );
         setSessions(data || []);
 
         // Fetch pets data
         if (data && data.length > 0) {
-          const petIds = data.map(session => session.pet_id);
+          const petIds = data.map((session) => session.pet_id);
           const { data: petsData } = await supabase
-            .from('pets')
-            .select('id, name, breed')
-            .in('id', petIds);
+            .from("pets")
+            .select("id, name, breed")
+            .in("id", petIds);
 
           const petsMap: Record<string, Pet> = {};
-          petsData?.forEach(pet => {
+          petsData?.forEach((pet) => {
             petsMap[pet.id] = pet;
           });
           setPets(petsMap);
 
           // Fetch walkers data
           const walkerIds = data
-            .filter(session => session.walker_id)
-            .map(session => session.walker_id!);
-          
+            .filter((session) => session.walker_id)
+            .map((session) => session.walker_id!);
+
           if (walkerIds.length > 0) {
             const { data: walkersData } = await supabase
-              .from('profiles')
-              .select('id, full_name')
-              .in('id', walkerIds);
+              .from("profiles")
+              .select("id, full_name")
+              .in("id", walkerIds);
 
             const walkersMap: Record<string, WalkerProfile> = {};
-            walkersData?.forEach(walker => {
+            walkersData?.forEach((walker) => {
               walkersMap[walker.id] = walker;
             });
             setWalkers(walkersMap);
           }
         }
       } catch (error) {
-        console.error('Error fetching sessions:', error);
+        console.error("Error fetching sessions:", error);
       } finally {
         setLoading(false);
       }
@@ -113,25 +119,25 @@ export default function MySessions() {
   };
 
   const handleDeleteSession = async (sessionId: string) => {
-    if (!confirm('Are you sure you want to delete this session?')) return;
+    if (!confirm("Are you sure you want to delete this session?")) return;
 
     try {
       const { error } = await supabase
-        .from('sessions')
+        .from("sessions")
         .update({ is_deleted: true })
-        .eq('id', sessionId);
+        .eq("id", sessionId);
 
       if (error) {
         console.log(error);
-        alert('Failed to remove session.');
+        alert("Failed to remove session.");
         return;
       }
 
-      setSessions(prev => prev.filter(session => session.id !== sessionId));
-      alert('Session deleted successfully!');
+      setSessions((prev) => prev.filter((session) => session.id !== sessionId));
+      alert("Session deleted successfully!");
     } catch (error) {
-      console.error('Unexpected error:', error);
-      alert('Unexpected error deleting session');
+      console.error("Unexpected error:", error);
+      alert("Unexpected error deleting session");
     }
   };
 
@@ -152,14 +158,16 @@ export default function MySessions() {
               ← Back to Dashboard
             </Button> */}
             <button
-              onClick={() => navigate('/owner/dashboard')}
+              onClick={() => navigate("/owner/dashboard")}
               className="fixed top-4 left-4 z-50 bg-wolive text-black p-2 rounded-full shadow-lg hover:bg-green-600 transition"
             >
               <ChevronLeft size={30} />
             </button>
             {/* <h1 className="text-2xl font-bold text-white ">My Sessions</h1> */}
             <div className="flex justify-center">
-              <h1 className="text-2xl font-bold text-white text-center mt-2">Scheduled Walks</h1>
+              <h1 className="text-2xl font-bold text-white text-center mt-2">
+                Scheduled Walks
+              </h1>
             </div>
           </div>
 
@@ -169,9 +177,13 @@ export default function MySessions() {
                 <div className="w-16 h-16 bg-wyellow rounded-full flex items-center justify-center text-white text-2xl mx-auto mb-4">
                   🐕
                 </div>
-                <h3 className="text-lg font-semibold text-wblue mb-2">No Sessions Yet</h3>
-                <p className="text-gray-600 mb-4">You haven't created any walk sessions yet.</p>
-                <Button onClick={() => navigate('/requests/new')}>
+                <h3 className="text-lg font-semibold text-wblue mb-2">
+                  No Sessions Yet
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  You haven't created any walk sessions yet.
+                </p>
+                <Button onClick={() => navigate("/requests/new")}>
                   Create Your First Session
                 </Button>
               </div>
@@ -184,40 +196,56 @@ export default function MySessions() {
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-3">
                         <h3 className="text-lg font-semibold text-wblue">
-                          {pets[session.pet_id]?.name} ({pets[session.pet_id]?.breed})
+                          {pets[session.pet_id]?.name} (
+                          {pets[session.pet_id]?.breed})
                         </h3>
                         <StatusPill status={session.status} />
                       </div>
-                      
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div>
                           <p className="text-sm text-gray-600">
-                            <span className="font-medium">Start Time:</span> {formatDateTime(session.start_time)}
+                            <span className="font-medium">Start Time:</span>{" "}
+                            {formatDateTime(session.start_time)}
                           </p>
                           <p className="text-sm text-gray-600">
-                            <span className="font-medium">Duration:</span> {session.duration_minutes} minutes
+                            <span className="font-medium">Duration:</span>{" "}
+                            {session.duration_minutes} minutes
                           </p>
                           <p className="text-sm text-gray-600">
-                            <span className="font-medium">Compensation:</span> ${session.compensation}
+                            <span className="font-medium">Compensation:</span> $
+                            {session.compensation}
                           </p>
                         </div>
                         <div>
                           {session.walker_id && walkers[session.walker_id] ? (
                             <p className="text-sm text-gray-600">
-                              <span className="font-medium">Selected Walker:</span> {walkers[session.walker_id].full_name}
+                              <span className="font-medium">
+                                Selected Walker:
+                              </span>{" "}
+                              {walkers[session.walker_id].full_name}
                             </p>
-                          ) : session.applications && session.applications.length > 0 ? (
+                          ) : session.applications &&
+                            session.applications.length > 0 ? (
                             <p className="text-sm text-wblue font-medium">
-                              <span className="font-medium">Pending Applications:</span> {session.applications.length} walker(s) waiting for review
+                              <span className="font-medium">
+                                Pending Applications:
+                              </span>{" "}
+                              {session.applications.length} walker(s) waiting
+                              for review
                             </p>
                           ) : (
                             <p className="text-sm text-gray-500">
-                              <span className="font-medium">Applications:</span> No applications yet
+                              <span className="font-medium">Applications:</span>{" "}
+                              No applications yet
                             </p>
                           )}
                           {session.meeting_location && (
                             <p className="text-sm text-gray-600">
-                              <span className="font-medium">Meeting Location:</span> {session.meeting_location}
+                              <span className="font-medium">
+                                Meeting Location:
+                              </span>{" "}
+                              {session.meeting_location}
                             </p>
                           )}
                         </div>
@@ -226,7 +254,8 @@ export default function MySessions() {
                       {session.notes && (
                         <div className="mb-3">
                           <p className="text-sm text-gray-600">
-                            <span className="font-medium">Notes:</span> {session.notes}
+                            <span className="font-medium">Notes:</span>{" "}
+                            {session.notes}
                           </p>
                         </div>
                       )}
@@ -234,24 +263,28 @@ export default function MySessions() {
                       {session.special_instructions && (
                         <div className="mb-3">
                           <p className="text-sm text-gray-600">
-                            <span className="font-medium">Special Instructions:</span> {session.special_instructions}
+                            <span className="font-medium">
+                              Special Instructions:
+                            </span>{" "}
+                            {session.special_instructions}
                           </p>
                         </div>
                       )}
                     </div>
 
                     <div className="ml-4 flex flex-col space-y-2">
-                      {session.applications && session.applications.length > 0 && (
-                        <Button
-                          onClick={() => handleViewApplications(session.id)}
-                          size="sm"
-                          variant="secondary"
-                        >
-                          View Applications ({session.applications.length})
-                        </Button>
-                      )}
-                      
-                      {session.status === 'pending' && (
+                      {session.applications &&
+                        session.applications.length > 0 && (
+                          <Button
+                            onClick={() => handleViewApplications(session.id)}
+                            size="sm"
+                            variant="secondary"
+                          >
+                            View Applications ({session.applications.length})
+                          </Button>
+                        )}
+
+                      {session.status === "pending" && (
                         <>
                           <Button
                             onClick={() => handleEditSession(session.id)}
@@ -280,4 +313,3 @@ export default function MySessions() {
     </ProtectedRoute>
   );
 }
-

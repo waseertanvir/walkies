@@ -94,6 +94,7 @@ export default function App() {
           };
           //set new user position
           setMyPosition(newPosition);
+          setMapCenter(newPosition); 
           //broadcast location
           sendLocation(newPosition)
         },

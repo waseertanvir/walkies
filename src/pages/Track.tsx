@@ -584,8 +584,8 @@ export default function Track() {
         .insert({
           session_id: sessionId,
           created_at: formattedDate,
-          rating: 0,
-          description: "",
+          rating: ratingsFormData.rating,
+          description: ratingsFormData.description,
         })
         .select("session_id");
 
@@ -737,7 +737,7 @@ export default function Track() {
             ? "top-[47%]"
             : sessionStatus === WalkStatus.Rate
             ? "top-[30%]"
-            : "top-[65%]"
+            : "top-[58%]"
         }`}
       >
         <div
