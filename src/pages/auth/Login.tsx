@@ -1,14 +1,14 @@
-import { useState } from 'react';
-import logo from '../../assets/Logo.png'
+import { useRef, useState } from 'react';
+import logo from '../../assets/Logo.png';
 import { supabase } from "../../supabaseClient";
 import { useNavigate, useSearchParams } from "react-router";
 
 export default function Login() {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
+    const emailRef = useRef<HTMLInputElement>(null);
+    const passwordRef = useRef<HTMLInputElement>(null);
+
     const [loading, setLoading] = useState(false);
     const [urlParams] = useSearchParams();
-    const [role, setRole] = useState('');
     const message = urlParams.get('message');
 
     const navigate = useNavigate();
@@ -31,23 +31,25 @@ export default function Login() {
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+
+        const email = emailRef.current?.value || '';
+        const password = passwordRef.current?.value || '';
+
         try {
             const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
             if (error) {
                 if (error.message.includes('Email not confirmed')) {
                     alert('Please check your email and click the verification link before signing in.');
                 } else if (error.message.includes('Invalid login credentials')) {
-                    alert('Invalid email or password. Please check your credentials and try again.');
+                    alert('Invalid email or password. Please try again.');
                 } else {
-                    console.log(error.message);
                     alert('Login failed: ' + error.message);
                 }
                 return;
             }
 
             const { complete, role } = await checkProfileCompleteness(data.user.id);
-            setRole(role ?? ''); // optional, if you still need it in UI later
-            console.log('resolved role:', role);
 
             if (!complete) {
                 navigate('/userprofile');
@@ -64,24 +66,19 @@ export default function Login() {
         }
     };
 
-
     (window as any).handleSignInWithGoogle = async () => {
         const { data, error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                redirectTo: `${window.location.origin}` // or your homepage
+                redirectTo: `${window.location.origin}`
             }
         })
 
         if (error) {
             console.error("Google sign-in error:", error.message);
-        } else {
-            console.log("Supabase session:", data);
-            //window.location.href = "/";
         }
     };
 
-    // Dynamically load the Google Identity Services script
     const script = document.createElement("script");
     script.src = "https://accounts.google.com/gsi/client";
     script.async = true;
@@ -89,10 +86,9 @@ export default function Login() {
     document.body.appendChild(script);
 
     return (
-
         <div className="flex flex-col justify-center items-center h-full gap-20">
             <div>
-                <img src={logo} className='max-w-[60%] h-auto mx-auto'></img>
+                <img src={logo} className='max-w-[60%] h-auto mx-auto' />
                 <h1 className='text-7xl text-white text-center'>Walkies</h1>
             </div>
 
@@ -110,24 +106,25 @@ export default function Login() {
                 </div>
             )}
 
-            <div className='flex flex-col gap-5'>
+            <form className='flex flex-col gap-5' onSubmit={handleLogin}>
                 <input
+                    ref={emailRef}
                     type="email"
-                    value={email}
                     placeholder='Email'
-                    onChange={(e) => setEmail(e.target.value)}
                     className='bg-wsage py-1.5 px-4 rounded-md drop-shadow-2xl'
                 />
+
                 <input
+                    ref={passwordRef}
                     type="password"
-                    value={password}
                     placeholder='Password'
-                    onChange={(e) => setPassword(e.target.value)}
                     className='bg-wsage py-1.5 px-4 rounded-md drop-shadow-2xl'
                 />
+
                 <button
                     type="button"
                     onClick={async () => {
+                        const email = emailRef.current?.value;
                         if (!email) {
                             alert('Please enter your email address first');
                             return;
@@ -145,23 +142,25 @@ export default function Login() {
                 >
                     Forgot password?
                 </button>
+
                 <div className='flex justify-center items-center gap-5'>
                     <button
-                        onClick={handleLogin}
+                        type="submit"
                         className='border-2 border-worange bg-worange rounded-2xl py-1.5 px-4 disabled:opacity-50 active:bg-wblue active:text-worange'
                         disabled={loading}
                     >
                         {loading ? 'Signing in...' : 'Log in'}
                     </button>
+
                     <button
+                        type="button"
                         onClick={() => navigate("/signup")}
                         className='border-2 border-worange text-worange rounded-2xl py-1.5 px-4 active:bg-worange active:text-black'
                     >
                         Sign Up
                     </button>
                 </div>
-
-            </div>
+            </form>
 
             <div>
                 <div
@@ -182,4 +181,4 @@ export default function Login() {
 
         </div>
     );
-};
+}
