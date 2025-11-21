@@ -1,19 +1,25 @@
-import { useEffect, useRef, useState, useMemo } from 'react';
-import { APIProvider, Map, AdvancedMarker, useMap } from '@vis.gl/react-google-maps';
-import { supabase } from '../supabaseClient';
-import ProtectedRoute from '../auth/ProtectedRoute';
-import { useNavigate, useParams } from 'react-router';
-import OwnerMenu from '../components/ownerMenu';
-import WalkerMenu from '../components/walkerMenu';
-import { TrajectoryLine } from '../components/TrajectoryLine';
-import logo from '../assets/Logo.png'
+import { useEffect, useRef, useState, useMemo } from "react";
+import {
+  APIProvider,
+  Map,
+  AdvancedMarker,
+  useMap,
+} from "@vis.gl/react-google-maps";
+import { supabase } from "../supabaseClient";
+import ProtectedRoute from "../auth/ProtectedRoute";
+import { useNavigate, useParams } from "react-router";
+import OwnerMenu from "../components/ownerMenu";
+import WalkerMenu from "../components/walkerMenu";
+import { TrajectoryLine } from "../components/TrajectoryLine";
+import logo from "../assets/Logo.png";
 import Loader from "../Loader";
-import { WalkStatus } from '../constants/WalkStatus';
-import { Rating } from '@smastrom/react-rating'
-import '@smastrom/react-rating/style.css'
+import { WalkStatus } from "../constants/WalkStatus";
+import { Rating } from "@smastrom/react-rating";
+import "@smastrom/react-rating/style.css";
+import { Button } from "../components/ui";
 
 type LatLng = { lat: number; lng: number };
-type Role = 'owner' | 'walker' | string;
+type Role = "owner" | "walker" | string;
 
 type UserLocation = {
   userID: string;
@@ -38,7 +44,7 @@ type SessionDetail = {
   lat: number;
   long: number;
   created_at: string | null;
-}
+};
 
 type Message = {
   id: string;
@@ -66,17 +72,17 @@ const within20m = (a?: LatLng | null, b?: LatLng | null) =>
 
 //calculating times
 function displayTime(t: Date) {
-  return (t.toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit'
-  }))
+  if (!t) return "none";
+  return t.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 function calculateTime(minutes: number) {
   const m = Math.floor(minutes);
   const s = Math.floor((minutes % 1) * 60);
-  return `${m}:${String(s).padStart(2, '0')}`;
+  return `${m}:${String(s).padStart(2, "0")}`;
 }
-
 
 // draw line logic
 function WalkerPath({ path }: { path: LatLng[] }) {
@@ -89,7 +95,7 @@ function WalkerPath({ path }: { path: LatLng[] }) {
       polylineRef.current = new google.maps.Polyline({
         map,
         path,
-        strokeColor: '#007BFF',
+        strokeColor: "#007BFF",
         strokeWeight: 5,
         strokeOpacity: 1,
       });
@@ -105,31 +111,45 @@ export default function Track() {
   const navigate = useNavigate();
   const { id: sessionId } = useParams();
 
-  const [me, setMe] = useState<{ id: string; name: string; role: Role } | null>(null);
-  const [other, setOther] = useState<{ id: string; name: string; role: Role } | null>(null);
-  const [dog, setDog] = useState<{ id: string; name: string; breed: Role } | null>(null);
+  const [me, setMe] = useState<{ id: string; name: string; role: Role } | null>(
+    null
+  );
+  const [other, setOther] = useState<{
+    id: string;
+    name: string;
+    role: Role;
+  } | null>(null);
+  const [dog, setDog] = useState<{
+    id: string;
+    name: string;
+    breed: Role;
+  } | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   const [session, setSession] = useState<Session | null>(null);
   const [sessionStatus, setSessionStatus] = useState<string>();
   const [start, setStart] = useState<Date>();
   const [end, setEnd] = useState<Date>();
-
+  const [displayStart, setDisplayStart] = useState<string>();
+  const [displayEnd, setDisplayEnd] = useState<string>();
 
   const [users, setUsers] = useState<UserLocation[]>([]);
   const [myPosition, setMyPosition] = useState<LatLng | null>(null);
   const [path, setPath] = useState<LatLng[]>([]);
-  const center = useMemo<LatLng>(() => myPosition ?? { lat: 49.24, lng: -123.05 }, [myPosition]);
+  const center = useMemo<LatLng>(
+    () => myPosition ?? { lat: 49.24, lng: -123.05 },
+    [myPosition]
+  );
 
   const [isLoaded, setIsLoaded] = useState(false);
   const intervalRef = useRef<number | null>(null);
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-  const [rating, setRating] = useState(0)
+  const [rating, setRating] = useState(0);
   const [ratingsFormData, setRatingsFormData] = useState({
     rating: 0,
-    description: ''
+    description: "",
   });
   const [messages, setMessages] = useState<Message[]>([]);
   const [chatInput, setChatInput] = useState("");
@@ -138,59 +158,76 @@ export default function Track() {
 
   useEffect(() => {
     (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) {
-        navigate('/login');
+        navigate("/login");
         return;
       }
       // get me
       const { data: myProfile } = await supabase
-        .from('profiles')
-        .select('full_name, role, avatar_url')
-        .eq('id', user.id)
+        .from("profiles")
+        .select("full_name, role, avatar_url")
+        .eq("id", user.id)
         .single();
-      setMe({ id: user.id, name: myProfile?.full_name ?? '', role: myProfile?.role ?? '' });
+      setMe({
+        id: user.id,
+        name: myProfile?.full_name ?? "",
+        role: myProfile?.role ?? "",
+      });
       // get session
-      const { data: s } = await supabase.from('sessions').select('*').eq('id', sessionId).single();
+      const { data: s } = await supabase
+        .from("sessions")
+        .select("*")
+        .eq("id", sessionId)
+        .single();
       setSession(s);
       setSessionStatus(s.status);
       // redirect if no session
       if (!s && myProfile?.role == "walker") {
-        navigate('/walker/dashboard');
+        navigate("/walker/dashboard");
         return;
       } else if (!s && myProfile?.role == "owner") {
-        navigate('/owner/dashboard');
+        navigate("/owner/dashboard");
         return;
       }
 
       //set other
-      if (myProfile?.role == 'owner') {
+      if (myProfile?.role == "owner") {
         const { data: otherProfile } = await supabase
-          .from('profiles')
-          .select('full_name, role, avatar_url')
-          .eq('id', s?.walker_id)
+          .from("profiles")
+          .select("full_name, role, avatar_url")
+          .eq("id", s?.walker_id)
           .single();
-        setOther({ id: s?.walker_id ?? '', name: otherProfile?.full_name ?? '', role: otherProfile?.role ?? '' });
+        setOther({
+          id: s?.walker_id ?? "",
+          name: otherProfile?.full_name ?? "",
+          role: otherProfile?.role ?? "",
+        });
         // avatar is always other persons
         setAvatarUrl(otherProfile?.avatar_url ?? null);
-        console.log(otherProfile)
-      } else if (myProfile?.role == 'walker') {
+        console.log(otherProfile);
+      } else if (myProfile?.role == "walker") {
         const { data: otherProfile } = await supabase
-          .from('profiles')
-          .select('full_name, role, avatar_url')
-          .eq('id', s?.owner_id)
+          .from("profiles")
+          .select("full_name, role, avatar_url")
+          .eq("id", s?.owner_id)
           .single();
-        setOther({ id: s?.owner_id ?? '', name: otherProfile?.full_name ?? '', role: otherProfile?.role ?? '' });
+        setOther({
+          id: s?.owner_id ?? "",
+          name: otherProfile?.full_name ?? "",
+          role: otherProfile?.role ?? "",
+        });
         // avatar is always other persons
         setAvatarUrl(otherProfile?.avatar_url ?? null);
-        console.log(otherProfile)
+        console.log(otherProfile);
       }
 
-
       const { data: dogData } = await supabase
-        .from('pets')
-        .select('id, name, breed')
-        .eq('id', s?.pet_id)
+        .from("pets")
+        .select("id, name, breed")
+        .eq("id", s?.pet_id)
         .single();
 
       setDog({ id: dogData?.id, name: dogData?.name, breed: dogData?.breed });
@@ -247,11 +284,11 @@ export default function Track() {
   useEffect(() => {
     if (!me) return;
 
-    const ch = supabase.channel('liveLocations');
+    const ch = supabase.channel("liveLocations");
     channelRef.current = ch;
 
     // listener
-    ch.on('broadcast', { event: 'location' }, (payload) => {
+    ch.on("broadcast", { event: "location" }, (payload) => {
       const p = payload.payload as UserLocation;
       setUsers((prev) => {
         const i = prev.findIndex((u) => u.userID === p.userID);
@@ -264,8 +301,12 @@ export default function Track() {
       });
 
       // if this is the walker, update the polyline path
-      if (session?.walker_id && p.userID === session.walker_id && sessionStatus === WalkStatus.InProgress) {
-        console.log('Walker location received:', p.position);
+      if (
+        session?.walker_id &&
+        p.userID === session.walker_id &&
+        sessionStatus === WalkStatus.InProgress
+      ) {
+        setMyPosition(p.position);
         setPath((prev) => {
           const last = prev[prev.length - 1];
           if (!last || haversine(last, p.position) >= 1) {
@@ -283,8 +324,8 @@ export default function Track() {
     // send location
     const sendLocation = async (pos: LatLng) => {
       await ch.send({
-        type: 'broadcast',
-        event: 'location',
+        type: "broadcast",
+        event: "location",
         payload: {
           userID: me.id,
           role: me.role,
@@ -299,17 +340,17 @@ export default function Track() {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition((p) => {
         const pos = { lat: p.coords.latitude, lng: p.coords.longitude };
-        setMyPosition(pos);
+        // setMyPosition(pos);
         sendLocation(pos);
       });
 
       watchId = navigator.geolocation.watchPosition(
         (p) => {
           const pos = { lat: p.coords.latitude, lng: p.coords.longitude };
-          setMyPosition(pos);
+          // setMyPosition(pos);
           sendLocation(pos);
         },
-        () => { },
+        () => {},
         { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
       );
     }
@@ -320,10 +361,13 @@ export default function Track() {
     };
   }, [me, session, sessionStatus === WalkStatus.InProgress]);
 
-  const ownerPos = users.find((u) => u.role === 'owner')?.position ?? null;
-  const walkerPos = users.find((u) => u.role === 'walker')?.position ?? null;
+  const ownerPos = users.find((u) => u.role === "owner")?.position ?? null;
+  const walkerPos = users.find((u) => u.role === "walker")?.position ?? null;
 
-  const canStart = session?.status === WalkStatus.Accepted && within20m(ownerPos, walkerPos) && sessionStatus !== WalkStatus.InProgress;
+  const canStart =
+    session?.status === WalkStatus.Accepted &&
+    within20m(ownerPos, walkerPos) &&
+    sessionStatus !== WalkStatus.InProgress;
 
   const canEnd = (() => {
     if (!session || session.status !== WalkStatus.InProgress) return false;
@@ -336,18 +380,18 @@ export default function Track() {
     if (!session) return;
 
     const { data, error } = await supabase
-      .from('sessions')
-      .update({ status: WalkStatus.InProgress }) // must match your DB enum/text exactly
-      .eq('id', sessionId)
-      .select('id, status');          // optional: see what came back
+      .from("sessions")
+      .update({ status: WalkStatus.InProgress })
+      .eq("id", sessionId)
+      .select("id, status");
 
     if (error) {
-      console.error('Supabase update error:', error);
+      console.error("Supabase update error:", error);
       return;
     }
-    console.log(data)
+    console.log(data);
     setSession({ ...session, status: WalkStatus.InProgress });
-    setSessionStatus(WalkStatus.InProgress)
+    setSessionStatus(WalkStatus.InProgress);
   };
 
   const stopInterval = () => {
@@ -360,20 +404,23 @@ export default function Track() {
   const endWalk = async () => {
     if (!session) return;
 
-    console.log('endWalk called - path length:', path.length);
-    console.log('Current path:', path);
+    console.log("endWalk called - path length:", path.length);
+    console.log("Current path:", path);
+
+    const now = new Date(Date.now());
+    const formattedDate = now.toISOString().slice(0, 16);
 
     const { data } = await supabase
-      .from('sessions')
+      .from("sessions")
       .update({
         status: WalkStatus.Rate,
-        end_time: Date.now()
+        end_time: formattedDate,
       })
-      .select('start_time, end_time')
-      .eq('id', session.id);
+      .select("start_time, end_time")
+      .eq("id", session.id);
 
     if (data != null) {
-      const row = data![0];
+      const row = data[0];
       setStart(new Date(row.start_time));
       setEnd(new Date(row.end_time));
     }
@@ -386,27 +433,29 @@ export default function Track() {
         session_id: sessionId,
         lat: lat,
         long: lng,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       });
     }
 
-    console.log(`Preparing to save ${result.length} location points to session_detail`);
+    console.log(
+      `Preparing to save ${result.length} location points to session_detail`
+    );
 
     if (result.length === 0) {
-      console.warn('WARNING: No location points to save! Path array is empty.');
-      alert('Warning: No location data was collected during this walk.');
+      console.warn("WARNING: No location points to save! Path array is empty.");
+      alert("Warning: No location data was collected during this walk.");
     } else {
-      const { error } = await supabase
-        .from('session_detail')
-        .insert(result);
+      const { error } = await supabase.from("session_detail").insert(result);
 
       if (error) {
-        console.error('Insert failed:', error);
-        console.error('Error code:', error.code);
-        console.error('Error message:', error.message);
-        alert('Error saving location data: ' + error.message);
+        console.error("Insert failed:", error);
+        console.error("Error code:", error.code);
+        console.error("Error message:", error.message);
+        alert("Error saving location data: " + error.message);
       } else {
-        console.log(`Successfully saved ${result.length} location points to session_detail`);
+        console.log(
+          `Successfully saved ${result.length} location points to session_detail`
+        );
       }
     }
 
@@ -420,11 +469,10 @@ export default function Track() {
     }
   }, [messages]);
 
-
   if (!isLoaded)
     return (
       <ProtectedRoute>
-        <div className="min-h-screen bg-wblue flex items-center justify-center">
+        <div className="min-h-screen bg-wsage flex items-center justify-center">
           <div className="text-white text-xl">Loading map…</div>
         </div>
       </ProtectedRoute>
@@ -435,10 +483,10 @@ export default function Track() {
 
     if (intervalRef.current !== null) return;
     intervalRef.current = window.setInterval(async () => {
-
-      const { data, error } = await supabase.from('sessions')
-        .select('walker_id')
-        .eq('id', sessionId)
+      const { data, error } = await supabase
+        .from("sessions")
+        .select("walker_id")
+        .eq("id", sessionId)
         .single();
 
       console.log("Searching for walker:", data);
@@ -448,9 +496,7 @@ export default function Track() {
         setSessionStatus(WalkStatus.Accepted);
         startCheckingForWalkStart();
       }
-
     }, 2000);
-
   };
 
   const startCheckingForWalkStart = async () => {
@@ -458,99 +504,139 @@ export default function Track() {
 
     if (intervalRef.current !== null) return;
     intervalRef.current = window.setInterval(async () => {
-
-      const { data, error } = await supabase.from('sessions')
-        .select('status')
-        .eq('id', sessionId)
+      const { data, error } = await supabase
+        .from("sessions")
+        .select("status")
+        .eq("id", sessionId)
         .single();
 
       if (data != null && data.status == WalkStatus.InProgress) {
         setSessionStatus(WalkStatus.InProgress);
-        stopInterval()
+        stopInterval();
       }
-
     }, 2000);
     return;
-  }
+  };
 
   const startCheckingForWalkEnd = async () => {
     console.log("Going to start checking for walk end.");
 
     if (intervalRef.current !== null) return;
     intervalRef.current = window.setInterval(async () => {
-
-      const { data, error } = await supabase.from('sessions')
-        .select('status')
-        .eq('id', sessionId)
+      const { data, error } = await supabase
+        .from("sessions")
+        .select("status, start_time, end_time")
+        .eq("id", sessionId)
         .single();
 
       if (data != null && data.status == WalkStatus.Rate) {
+        setDisplayStart(displayTime(new Date(data.start_time)));
+        setDisplayEnd(displayTime(new Date(data.end_time)));
         setSessionStatus(WalkStatus.Rate);
-        stopInterval()
+        stopInterval();
       }
-
     }, 2000);
     return;
-  }
+  };
+
+  const getTimes = async () => {
+    const { data, error } = await supabase
+      .from("sessions")
+      .select("status, start_time, end_time")
+      .eq("id", sessionId)
+      .single();
+    console.log("in rate status and checking for data", data);
+    if (data != null && data.status == WalkStatus.Rate) {
+      console.log("in rate status and checking for data", data);
+      setDisplayStart(displayTime(new Date(data.start_time)));
+      setDisplayEnd(displayTime(new Date(data.end_time)));
+    }
+  };
 
   if (sessionStatus == WalkStatus.Pending) {
-    startCheckingForWalkerRequests()
+    startCheckingForWalkerRequests();
   } else if (sessionStatus == WalkStatus.Accepted) {
-    startCheckingForWalkStart()
+    startCheckingForWalkStart();
   } else if (sessionStatus == WalkStatus.InProgress) {
-    startCheckingForWalkEnd()
+    startCheckingForWalkEnd();
+  } else if (sessionStatus == WalkStatus.Rate) {
+    getTimes();
   }
 
   const handleSkipReviewButtonClick = () => {
-    navigate('/owner/dashboard');
-  }
+    navigate("/owner/dashboard");
+  };
 
   const handleRatingFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
 
       const now = new Date(Date.now());
       const formattedDate = now.toISOString().slice(0, 16);
 
       const { data, error } = await supabase
-        .from('walk_review')
+        .from("walk_review")
         .insert({
           session_id: sessionId,
           created_at: formattedDate,
           rating: 0,
-          description: ''
+          description: "",
         })
-        .select('session_id');
+        .select("session_id");
 
       const insertedId = data?.[0]?.session_id;
 
       if (!insertedId) {
-        console.warn('Something went wrong when submitting your review.');
-        alert('Something went wrong when submitting your review. Please skip or try again later.');
+        console.warn("Something went wrong when submitting your review.");
+        alert(
+          "Something went wrong when submitting your review. Please skip or try again later."
+        );
         return;
       }
 
-      await supabase.from('sessions')
+      await supabase
+        .from("sessions")
         .update({
-          status: WalkStatus.Completed
+          status: WalkStatus.Completed,
         })
-        .eq('id', sessionId);
+        .eq("id", sessionId);
 
-      navigate('/owner/dashboard');
+      navigate("/owner/dashboard");
 
       if (error) {
-        console.error('Error creating request:', error);
-        alert('Error creating request: ' + error.message);
+        console.error("Error creating request:", error);
+        alert("Error creating request: " + error.message);
         return;
       }
     } catch (error) {
-      console.error('Unexpected error:', error);
-      alert('Unexpected error creating request');
+      console.error("Unexpected error:", error);
+      alert("Unexpected error creating request");
     }
-  }
+  };
+
+  const completeWalk = async () => {
+    if (!session) return;
+
+    const { error } = await supabase
+      .from("sessions")
+      .update({
+        status: WalkStatus.Completed, 
+        end_time: new Date().toISOString(),
+      })
+      .eq("id", session.id);
+
+    if (error) {
+      console.error("Supabase update error:", error);
+      return;
+    }
+
+    navigate("/walker/dashboard");
+  };
 
   async function sendMessage() {
     if (!chatInput.trim()) return;
@@ -586,7 +672,7 @@ export default function Track() {
         <Map
           mapId={import.meta.env.VITE_GOOGLE_MAP_ID}
           style={{ width: "100vw", height: "78%" }}
-          defaultCenter={center}
+          center={center}
           defaultZoom={16}
           disableDefaultUI
           clickableIcons={false}
@@ -596,8 +682,8 @@ export default function Track() {
               u.role === "walker"
                 ? "#007BFF"
                 : u.role === "owner"
-                  ? "#28A745"
-                  : "#6C757D";
+                ? "#28A745"
+                : "#6C757D";
             return (
               <AdvancedMarker key={u.userID} position={u.position}>
                 <div
@@ -646,9 +732,13 @@ export default function Track() {
 
       {/* Avatars always viewable, but shift up when chat is visible */}
       <div
-        className={`absolute z-50 left-1/2 -translate-x-1/2 ${sessionStatus === WalkStatus.InProgress
-          ? "top-[47%]" : "top-[65%]"
-          }`}
+        className={`absolute z-50 left-1/2 -translate-x-1/2 ${
+          sessionStatus === WalkStatus.InProgress
+            ? "top-[47%]"
+            : sessionStatus === WalkStatus.Rate
+            ? "top-[30%]"
+            : "top-[65%]"
+        }`}
       >
         <div
           className="
@@ -671,9 +761,16 @@ export default function Track() {
         </p>
       </div>
 
-      <div className={`absolute bottom-0 w-full ${sessionStatus === WalkStatus.InProgress
-        ? "h-[46%]" : "h-[35%]"
-        } rounded-t-xl bg-wsage p-5`}>
+      {/*Green Div Part*/}
+      <div
+        className={`absolute bottom-0 w-full ${
+          sessionStatus === WalkStatus.InProgress
+            ? "h-[46%]"
+            : sessionStatus === WalkStatus.Rate
+            ? "top-[37%]"
+            : "h-[35%]"
+        } rounded-t-xl bg-wsage p-5`}
+      >
         <div className="flex flex-col items-center justify-center h-full w-full space-y-4">
           {/* WALKER VIEW */}
           {me?.role === "walker" && (
@@ -695,7 +792,10 @@ export default function Track() {
                 <div className="absolute bottom-0 w-full bg-wsage p-5 rounded-t-xl">
                   <div className="flex flex-col gap-4">
                     {/* Chat box */}
-                    <div ref={chatRef} className="w-full h-32 bg-gray-700/60 rounded-md p-2 overflow-y-auto text-left">
+                    <div
+                      ref={chatRef}
+                      className="w-full h-32 bg-gray-700/60 rounded-md p-2 overflow-y-auto text-left"
+                    >
                       {messages.length === 0 ? (
                         <p className="text-gray-300 text-sm text-center mt-4">
                           Start the conversation…
@@ -704,10 +804,11 @@ export default function Track() {
                         messages.map((m) => (
                           <div
                             key={m.id}
-                            className={`text-sm my-1 ${m.sender_id === me.id
-                              ? "text-blue-300 text-right"
-                              : "text-white text-left"
-                              }`}
+                            className={`text-sm my-1 ${
+                              m.sender_id === me.id
+                                ? "text-blue-300 text-right"
+                                : "text-white text-left"
+                            }`}
                           >
                             {m.message}
                           </div>
@@ -721,6 +822,12 @@ export default function Track() {
                         type="text"
                         value={chatInput}
                         onChange={(e) => setChatInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            sendMessage();
+                          }
+                        }}
                         placeholder="Message..."
                         className="flex-grow bg-gray-700 text-white px-3 py-2 rounded-l-md focus:outline-none"
                       />
@@ -768,7 +875,10 @@ export default function Track() {
             ownerPos &&
             walkerPos && (
               <div className="text-white font-medium py-2 px-4 rounded-md text-center">
-                ETA: {ownerPos && walkerPos ? haversine(ownerPos, walkerPos) : 0 / 100}{" "}
+                ETA:{" "}
+                {ownerPos && walkerPos
+                  ? haversine(ownerPos, walkerPos)
+                  : 0 / 100}{" "}
                 Mins
               </div>
             )}
@@ -777,7 +887,10 @@ export default function Track() {
             ownerPos &&
             walkerPos && (
               <div className="invisible text-white font-medium py-2 px-4 rounded-md text-center">
-                ETA: {ownerPos && walkerPos ? haversine(ownerPos, walkerPos) : 0 / 100}{" "}
+                ETA:{" "}
+                {ownerPos && walkerPos
+                  ? haversine(ownerPos, walkerPos)
+                  : 0 / 100}{" "}
                 Mins
               </div>
             )}
@@ -792,7 +905,10 @@ export default function Track() {
             <div className="absolute bottom-0 w-full bg-wsage p-5 rounded-t-xl">
               <div className="flex flex-col gap-4">
                 {/* Messages */}
-                <div ref={chatRef} className="w-full h-32 bg-gray-700/60 rounded-md p-2 overflow-y-auto text-left">
+                <div
+                  ref={chatRef}
+                  className="w-full h-32 bg-gray-700/60 rounded-md p-2 overflow-y-auto text-left"
+                >
                   {messages.length === 0 ? (
                     <p className="text-gray-300 text-sm text-center mt-4">
                       Start the conversation…
@@ -801,10 +917,11 @@ export default function Track() {
                     messages.map((m) => (
                       <div
                         key={m.id}
-                        className={`text-sm my-1 ${m.sender_id === me.id
-                          ? "text-blue-300 text-right"
-                          : "text-white text-left"
-                          }`}
+                        className={`text-sm my-1 ${
+                          m.sender_id === me.id
+                            ? "text-blue-300 text-right"
+                            : "text-white text-left"
+                        }`}
                       >
                         {m.message}
                       </div>
@@ -818,6 +935,12 @@ export default function Track() {
                     type="text"
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        sendMessage();
+                      }
+                    }}
                     placeholder="Message..."
                     className="flex-grow bg-gray-700 text-white px-3 py-2 rounded-l-md focus:outline-none"
                   />
@@ -854,7 +977,7 @@ export default function Track() {
                 <p className="text-1xl text-white">Dog: {dog?.name}</p>
                 <p className="text-1xl text-white">Breed: {dog?.breed}</p>
                 <p className="text-1xl text-white">
-                  Duration: {displayTime(start!)} - {displayTime(end!)}
+                  Duration: {displayStart} - {displayEnd}
                 </p>
                 {session?.activity && (
                   <p className="text-1xl text-white">
@@ -869,7 +992,10 @@ export default function Track() {
                     style={{ maxWidth: 180 }}
                     value={rating}
                     onChange={(value: number) => {
-                      setRatingsFormData((prev) => ({ ...prev, rating: value }));
+                      setRatingsFormData((prev) => ({
+                        ...prev,
+                        rating: value,
+                      }));
                       setRating(value);
                     }}
                   />
@@ -877,7 +1003,7 @@ export default function Track() {
 
                 <div className="relative w-full h-auto border border-white-300">
                   <input
-                    className="text-white w-75 h-50 text-center"
+                    className="bg-white text-black w-75 h-50 text-center"
                     type="text"
                     placeholder="Enter your review here."
                     onChange={(e) =>
@@ -908,9 +1034,32 @@ export default function Track() {
               </form>
             </>
           )}
+          {me?.role === "walker" && sessionStatus === WalkStatus.Rate && (
+            <div className="absolute bottom-0 w-full bg-wsage p-5 rounded-t-xl">
+              <h2 className="text-2xl text-white font-bold text-center mb-4 h-20">
+                WALK COMPLETED
+              </h2>
+
+              <div className="text-center text-white mb-4 h-50">
+                <p className="text-1xl">Dog: {dog?.name}</p>
+                <p className="text-1xl">Breed: {dog?.breed}</p>
+                <p className="text-1xl">
+                  Duration: {displayStart} - {displayEnd}
+                </p>
+                {session?.activity && (
+                  <p className="text-1xl">Activities: {session.activity}</p>
+                )}
+              </div>
+              <Button
+                className="mx-auto block rounded-3xl px-6 py-4 text-lg font-semibold flex items-center justify-center gap-2"
+                onClick={completeWalk}
+              >
+                Finish
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </ProtectedRoute>
   );
-
 }
