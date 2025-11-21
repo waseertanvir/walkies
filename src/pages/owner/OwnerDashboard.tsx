@@ -21,11 +21,8 @@ export default function App() {
 
   const navigate = useNavigate();
   const location = useLocation();
-  const center = myPosition ?? { lat: 49.24, lng: -123.05 };
+  const center = myPosition;
   const [mapCenter, setMapCenter] = useState(center);
-  const { state, setState, sessionId } = useDeviceState();
-  const [loading, setLoading] = useState(true);
-  const intervalRef = useRef<number | null>(null);
 
   type UserLocation = {
     userID: string,
@@ -111,6 +108,8 @@ export default function App() {
               lng: data.longitude,
             };
             console.log('Broadcasting location using IP')
+            setMyPosition(newPosition)
+            setMapCenter(newPosition)
             sendLocation(newPosition)
           }
         },
@@ -169,33 +168,16 @@ export default function App() {
     }
   }, [location.state]);
 
+  const allUsers = [...users];
 
-  //dummy users for testing
-  const testUsers: UserLocation[] = [
-    {
-      userID: '1',
-      role: 'Walker',
-      name: 'Dev Uppin',
-      position: { lat: 49.245, lng: -123.05 },
-      timestamp: new Date(),
-    },
-    {
-      userID: '2',
-      role: 'Owner',
-      name: 'girl1',
-      position: { lat: 49.243, lng: -123.052 },
-      timestamp: new Date(),
-    },
-    {
-      userID: '3',
-      role: 'Walker',
-      name: 'guy2',
-      position: { lat: 49.271, lng: -123.251 },
-      timestamp: new Date(),
-    },
-  ];
-
-  const allUsers = [...users, ...testUsers];
+  if (!mapCenter) {
+    return (
+      <ProtectedRoute>
+        <OwnerMenu />
+        <div>Loading map...</div>
+      </ProtectedRoute>
+    );
+  }
 
   return (
     <ProtectedRoute>
@@ -205,7 +187,7 @@ export default function App() {
         <Map
           mapId={import.meta.env.VITE_GOOGLE_MAP_ID}
           style={{ width: '100vw', height: '100vh' }}
-          defaultCenter={mapCenter}
+          defaultCenter={mapCenter ? mapCenter : { lat: 49.24, lng: -123.05 }}
           defaultZoom={15}
           disableDefaultUI={true}
           clickableIcons={false}

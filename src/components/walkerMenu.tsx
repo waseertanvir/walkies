@@ -27,6 +27,11 @@ export default function WalkerMenu() {
           </button>
           <ul className="w-[92vw] py-1 px-5 text-xl">
             <li>
+              <button className="py-3" onClick={()=>navigate("/walker/dashboard/")}>
+                Dashboard
+              </button>
+            </li>
+            <li>
               <button
                 className="py-3"
                 onClick={() => navigate("/userprofile")}

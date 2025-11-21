@@ -27,6 +27,11 @@ export default function OwnerMenu() {
           </button>
           <ul className="w-[92vw] py-1 px-5 text-xl">
             <li>
+              <button className="py-3" onClick={()=>navigate("/owner/dashboard/")}>
+                Dashboard
+              </button>
+            </li>
+            <li>
               <button className="py-3" onClick={()=>navigate("/userprofile")}>
                 Profile
               </button>
