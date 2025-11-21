@@ -106,7 +106,7 @@ export default function WalkerDashboard() {
   if (loading) {
     return (
       <ProtectedRoute>
-        <div className="min-h-screen bg-[#619B8A] flex items-center justify-center text-white text-xl">
+        <div className="min-h-screen bg-wblue flex items-center justify-center text-white text-xl">
           Loading Dashboard...
         </div>
       </ProtectedRoute>
@@ -117,7 +117,7 @@ export default function WalkerDashboard() {
     <ProtectedRoute>
       <WalkerMenu />
 
-      <div className="min-h-screen bg-[#619B8A] p-4 pt-20 flex flex-col items-center">
+      <div className="min-h-screen bg-wblue p-4 pt-20 flex flex-col items-center">
         <h1 className="text-3xl font-bold text-white mb-6">
           Welcome, {username}
         </h1>

@@ -6,8 +6,10 @@ import { useLocation, useNavigate } from 'react-router';
 import OwnerMenu from '../../components/ownerMenu.tsx';
 import profileBanner from '../../assets/profile_banner.png';
 import '../App.css'
-import { useDeviceState } from "../../DeviceStateContext";
 import { Button } from '../../components/ui';
+import { WalkStatus } from '../../constants/WalkStatus.tsx';
+
+type ActiveWalk = { session: string; dog: string };
 
 export default function App() {
   const [myPosition, setMyPosition] = useState<{ lat: number; lng: number } | null>(null);
@@ -16,6 +18,9 @@ export default function App() {
   const [userRole, setUserRole] = useState("");
   const [users, setUsers] = useState<UserLocation[]>([]);
   const [clickedUser, setClickedUser] = useState<UserLocation | null>(null);
+  const [clickedRating, setClickedRating] = useState<{ rating: number; count: number } | null>(null);
+  const [activeWalks, setActiveWalks] = useState<ActiveWalk[] | null>(null);
+
   const [isExpanded, setIsExpanded] = useState(false);
   const [touchStart, setTouchStart] = useState(0);
 
@@ -53,6 +58,42 @@ export default function App() {
         setUserID(user.id);
         setUserName(profile.full_name)
         setUserRole(profile.role)
+      }
+
+      // get active walks
+      const { data: walks, error: walksError } = await supabase
+        .from("sessions")
+        .select("id, pet_id")
+        .eq("owner_id", user?.id)
+        .eq("status", WalkStatus.InProgress);
+
+      if (walksError) {
+        console.error("Error fetching walks:", walksError);
+        return;
+      }
+      console.log('WALKS', user, walks)
+
+      if (!walks || walks.length === 0) {
+        setActiveWalks(null);
+      } else {
+        // get dog names
+        const results: ActiveWalk[] = await Promise.all(
+          walks.map(async (walk) => {
+            const { data: pet, error: petError } = await supabase
+              .from("pets")
+              .select("name")
+              .eq("id", walk.pet_id)
+              .single();
+
+            if (petError) {
+              console.error("Error fetching pet:", petError);
+              return { session: walk.id, dog: "Unknown" };
+            }
+
+            return { session: walk.id, dog: pet?.name || "Unknown" };
+          })
+        );
+        setActiveWalks(results);
       }
 
       channel = supabase
@@ -94,7 +135,7 @@ export default function App() {
           };
           //set new user position
           setMyPosition(newPosition);
-          setMapCenter(newPosition); 
+          setMapCenter(newPosition);
           //broadcast location
           sendLocation(newPosition)
         },
@@ -123,7 +164,7 @@ export default function App() {
     const updateUserLocation = (updateLocation: UserLocation) => {
       setUsers(prevUsers => {
         const index = prevUsers.findIndex(u => u.userID === updateLocation.userID);
-        if (index !== -1) {
+        if (index !== -1 && updateLocation.userID !== userID) {
           // Update existing user
           const updatedUsers = [...prevUsers];
           updatedUsers[index] = { ...updatedUsers[index], ...updateLocation };
@@ -142,7 +183,9 @@ export default function App() {
 
   useEffect(() => {
     console.log("Updated users: ", users);
-  }, [users]);
+    console.log('activeWalks', activeWalks)
+
+  }, [users, activeWalks]);
 
 
   // touch handlers for swipe feature on popup
@@ -158,6 +201,28 @@ export default function App() {
       navigate(`/owner/walker/${clickedUser.userID}`, { state: { user: clickedUser } });
     }
   };
+
+  useEffect(() => {
+    const getClicked = async () => {
+      const { data, error } = await supabase
+        .from("walk_review")
+        .select("rating")
+        .eq("user_id", clickedUser?.userID);
+      if (error) {
+        console.error(error);
+        return;
+      }
+      if (data && data.length > 0) {
+        const avg = data.reduce((sum, row) => sum + row.rating, 0) / data.length;
+        console.log("Average rating:", avg);
+        setClickedRating({ rating: avg, count: data.length })
+      } else {
+        console.log("No ratings found");
+      }
+    };
+    getClicked();
+  }, [clickedUser]);
+
 
   // restores state after back click from walkerProfile
   useEffect(() => {
@@ -263,28 +328,50 @@ export default function App() {
                 <span className="name">{clickedUser.name}</span>
                 <div className="rating">
                   <span>★</span>
-                  <span>4.53 (12)</span>
+                  <span>{clickedRating?.rating.toFixed(2)} ({clickedRating?.count})</span>
                 </div>
               </div>
               <button className="request-button" onClick={() => setClickedUser(null)}>
                 Details
               </button>
-              <div className="details">
-                <span className="price">${'30'} per dog</span>
+              {/* <div className="details">
+                <span className="price">${'30'} per walk</span>
                 <span className="capacity">Capacity {'2/3'} Dogs</span>
-              </div>
+              </div> */}
             </div>
           </div>
         )}
 
+        {activeWalks && activeWalks.length > 0 && (
+          <div className="absolute right-0 top-0 flex flex-col items-end gap-3 pt-4 px-4">
+            <div className="bg-wsage/75 backdrop-blur-sm rounded-2xl shadow-lg px-4 py-3 w-full max-w-xs flex flex-col gap-3">
+              <p className="text-center text-white/90 text-xl mb-1">Active Walks</p>
+
+              {activeWalks.map((walk) => (
+                <Button
+                  key={walk.session}
+                  className="rounded-3xl py-2 text-sm sm:text-base w-full flex items-center justify-center"
+                  onClick={() => navigate(`/track/${walk.session}`)}
+                >
+                  {walk.dog}
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
+
+
         <div className="absolute bottom-4 w-full flex justify-center items-center px-4">
-          <div className="bg-wsage/90 backdrop-blur-sm rounded-2xl shadow-lg px-4 py-3 flex gap-3 w-full max-w-md">
-            <Button className="flex-1 rounded-3xl py-2 text-sm sm:text-base flex items-center justify-center gap-2" onClick={() => navigate("/owner/schedule")}>
-              Find Immediate Walk
-            </Button>
-            <Button className="flex-1 rounded-3xl py-2 text-sm sm:text-base flex items-center justify-center gap-2" onClick={() => navigate("/owner/schedule/latertemp")}>
-              Plan Future Walk
-            </Button>
+          <div className="bg-wsage/75 backdrop-blur-sm rounded-2xl shadow-lg px-4 py-3 gap-3 w-full max-w-md">
+            <p className='text-center w-full mb-2 text-3xl text-white/90'>Find walk?</p>
+            <div className='flex justify-center items-center px-4 gap-4'>
+              <Button className="flex-1 rounded-3xl py-2 text-sm sm:text-base flex items-center justify-center gap-2" onClick={() => navigate("/owner/schedule")}>
+                Now
+              </Button>
+              <Button className="flex-1 rounded-3xl py-2 text-sm sm:text-base flex items-center justify-center gap-2" onClick={() => navigate("/owner/schedule/latertemp")}>
+                Later
+              </Button>
+            </div>
           </div>
         </div>
       </APIProvider>

@@ -11,18 +11,18 @@ export default function Login() {
     const [urlParams] = useSearchParams();
     const message = urlParams.get('message');
 
-  const navigate = useNavigate();
+    const navigate = useNavigate();
 
-  const checkProfileCompleteness = async (userId: string) => {
-    const { data: profile, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .single();
+    const checkProfileCompleteness = async (userId: string) => {
+        const { data: profile, error } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", userId)
+            .single();
 
-    if (error || !profile) {
-      return { complete: false, role: null as null | string };
-    }
+        if (error || !profile) {
+            return { complete: false, role: null as null | string };
+        }
 
         const complete = Boolean(profile.full_name && profile.role && profile.phone);
         return { complete, role: profile.role as string };
@@ -146,16 +146,16 @@ export default function Login() {
                 <div className='flex justify-center items-center gap-5'>
                     <button
                         type="submit"
-                        className='border-2 border-worange bg-worange rounded-2xl py-1.5 px-4 disabled:opacity-50 active:bg-wblue active:text-worange'
+                        className='w-28 border-2 border-worange bg-worange rounded-2xl py-1.5 px-4 disabled:opacity-50 active:bg-wblue active:text-worange text-center'
                         disabled={loading}
                     >
-                        {loading ? 'Signing in...' : 'Log in'}
+                        {loading ? 'Loading...' : 'Log in'}
                     </button>
 
                     <button
                         type="button"
                         onClick={() => navigate("/signup")}
-                        className='border-2 border-worange text-worange rounded-2xl py-1.5 px-4 active:bg-worange active:text-black'
+                        className='w-28 border-2 border-worange text-worange rounded-2xl py-1.5 px-4 active:bg-worange active:text-black text-center'
                     >
                         Sign Up
                     </button>

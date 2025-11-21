@@ -350,7 +350,7 @@ export default function Track() {
           // setMyPosition(pos);
           sendLocation(pos);
         },
-        () => {},
+        () => { },
         { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
       );
     }
@@ -485,13 +485,13 @@ export default function Track() {
     intervalRef.current = window.setInterval(async () => {
       const { data, error } = await supabase
         .from("sessions")
-        .select("walker_id")
+        .select("status")
         .eq("id", sessionId)
         .single();
 
-      console.log("Searching for walker:", data);
+      console.log("Waiting for walker to accept:", data);
 
-      if (data?.walker_id != null) {
+      if (data?.status == WalkStatus.Accepted) {
         stopInterval();
         setSessionStatus(WalkStatus.Accepted);
         startCheckingForWalkStart();
@@ -625,7 +625,7 @@ export default function Track() {
     const { error } = await supabase
       .from("sessions")
       .update({
-        status: WalkStatus.Completed, 
+        status: WalkStatus.Completed,
         end_time: new Date().toISOString(),
       })
       .eq("id", session.id);
@@ -682,8 +682,8 @@ export default function Track() {
               u.role === "walker"
                 ? "#007BFF"
                 : u.role === "owner"
-                ? "#28A745"
-                : "#6C757D";
+                  ? "#28A745"
+                  : "#6C757D";
             return (
               <AdvancedMarker key={u.userID} position={u.position}>
                 <div
@@ -732,13 +732,12 @@ export default function Track() {
 
       {/* Avatars always viewable, but shift up when chat is visible */}
       <div
-        className={`absolute z-50 left-1/2 -translate-x-1/2 ${
-          sessionStatus === WalkStatus.InProgress
-            ? "top-[47%]"
-            : sessionStatus === WalkStatus.Rate
+        className={`absolute z-50 left-1/2 -translate-x-1/2 ${sessionStatus === WalkStatus.InProgress
+          ? "top-[47%]"
+          : sessionStatus === WalkStatus.Rate
             ? "top-[30%]"
             : "top-[58%]"
-        }`}
+          }`}
       >
         <div
           className="
@@ -763,33 +762,81 @@ export default function Track() {
 
       {/*Green Div Part*/}
       <div
-        className={`absolute bottom-0 w-full ${
-          sessionStatus === WalkStatus.InProgress
-            ? "h-[46%]"
-            : sessionStatus === WalkStatus.Rate
+        className={`absolute bottom-0 w-full ${sessionStatus === WalkStatus.InProgress
+          ? "h-[46%]"
+          : sessionStatus === WalkStatus.Rate
             ? "top-[37%]"
             : "h-[35%]"
-        } rounded-t-xl bg-wsage p-5`}
+          } rounded-t-xl bg-wsage/85 backdrop-blur-sm p-5`}
       >
         <div className="flex flex-col items-center justify-center h-full w-full space-y-4">
+
+          {/* STATUS: PENDING */}
+          {me?.role === "owner" && sessionStatus === WalkStatus.Pending && (
+            <div className="w-full flex-col justify-center pt-16">
+              <Loader />
+              <p className="text-center text-white text-xl pt-8">Finding walker</p>
+            </div>
+          )}
+          {me?.role === "walker" && sessionStatus === WalkStatus.Pending && (
+            <div className="invisible w-full flex justify-center">
+              <Loader />
+            </div>
+          )}
+
+          {/* STATUS: ACCEPTED ETA LOGIC */}
+          {me?.role === "owner" &&
+            sessionStatus === WalkStatus.Accepted &&
+            ownerPos &&
+            walkerPos && (
+              <div className="text-white font-medium py-2 px-4 rounded-md text-center">
+                ETA:{" "}
+                {ownerPos && walkerPos
+                  ? haversine(ownerPos, walkerPos)
+                  : 0 / 100}{" "}
+                Mins
+                <div className="text-white font-medium py-2 px-4 rounded-md text-center">
+                  Waiting for walker
+                </div>
+              </div>
+            )}
+          {me?.role === "walker" &&
+            sessionStatus === WalkStatus.Accepted &&
+            ownerPos &&
+            walkerPos && (
+              <div className="invisible text-white font-medium py-2 px-4 rounded-md text-center">
+                ETA:{" "}
+                {ownerPos && walkerPos
+                  ? haversine(ownerPos, walkerPos)
+                  : 0 / 100}{" "}
+                Mins
+              </div>
+            )}
+
           {/* WALKER VIEW */}
           {me?.role === "walker" && (
             <>
+              {/* WALKER ACCEPTED*/}
               {sessionStatus === WalkStatus.Accepted && (
-                <div className="absolute bottom-0 w-full bg-wsage p-5 rounded-t-xl">
+                <div className="absolute bottom-0 w-full p-5 rounded-t-xl">
                   <div className="flex flex-col items-center gap-4">
+                    {!canStart && (
+                      <div className="text-white font-medium py-2 px-4 rounded-md text-center">
+                        Walk to owner {canStart}
+                      </div>
+                    )}
                     <button
                       onClick={startWalk}
-                      className="bg-blue-600 text-white px-4 py-2 rounded-md w-full text-center"
+                      className="bg-wblue text-white px-4 py-2 rounded-md w-full text-center"
                     >
                       Start Walk
                     </button>
                   </div>
                 </div>
               )}
-
+              {/* WALKER IN PROGRESS*/}
               {sessionStatus === WalkStatus.InProgress && (
-                <div className="absolute bottom-0 w-full bg-wsage p-5 rounded-t-xl">
+                <div className="absolute bottom-0 w-full p-5 rounded-t-xl">
                   <div className="flex flex-col gap-4">
                     {/* Chat box */}
                     <div
@@ -804,11 +851,10 @@ export default function Track() {
                         messages.map((m) => (
                           <div
                             key={m.id}
-                            className={`text-sm my-1 ${
-                              m.sender_id === me.id
-                                ? "text-blue-300 text-right"
-                                : "text-white text-left"
-                            }`}
+                            className={`text-sm my-1 ${m.sender_id === me.id
+                              ? "text-blue-300 text-right"
+                              : "text-white text-left"
+                              }`}
                           >
                             {m.message}
                           </div>
@@ -833,7 +879,7 @@ export default function Track() {
                       />
                       <button
                         onClick={sendMessage}
-                        className="bg-blue-600 text-white px-4 rounded-r-md"
+                        className="bg-worange text-white px-4 rounded-r-md"
                       >
                         Send
                       </button>
@@ -842,7 +888,7 @@ export default function Track() {
                     {/* End Walk */}
                     <button
                       onClick={endWalk}
-                      className="bg-orange-500 text-white px-4 py-2 rounded-md w-full text-center"
+                      className="bg-wblue text-white px-4 py-2 rounded-md w-full text-center"
                     >
                       End Walk
                     </button>
@@ -852,62 +898,14 @@ export default function Track() {
             </>
           )}
 
-          {/* STATUS: PENDING */}
-          {me?.role === "owner" && sessionStatus === WalkStatus.Pending && (
-            <div className="w-full flex justify-center">
-              <Loader />
-            </div>
-          )}
-          {me?.role === "walker" && sessionStatus === WalkStatus.Pending && (
-            <div className="invisible w-full flex justify-center">
-              <Loader />
-            </div>
-          )}
-          {sessionStatus === WalkStatus.Pending && (
-            <div className="text-white font-medium py-2 px-4 rounded-md text-center">
-              REQUESTED
-            </div>
-          )}
-
-          {/* STATUS: ACCEPTED */}
-          {me?.role === "owner" &&
-            sessionStatus === WalkStatus.Accepted &&
-            ownerPos &&
-            walkerPos && (
-              <div className="text-white font-medium py-2 px-4 rounded-md text-center">
-                ETA:{" "}
-                {ownerPos && walkerPos
-                  ? haversine(ownerPos, walkerPos)
-                  : 0 / 100}{" "}
-                Mins
-              </div>
-            )}
-          {me?.role === "walker" &&
-            sessionStatus === WalkStatus.Accepted &&
-            ownerPos &&
-            walkerPos && (
-              <div className="invisible text-white font-medium py-2 px-4 rounded-md text-center">
-                ETA:{" "}
-                {ownerPos && walkerPos
-                  ? haversine(ownerPos, walkerPos)
-                  : 0 / 100}{" "}
-                Mins
-              </div>
-            )}
-          {sessionStatus === WalkStatus.Accepted && (
-            <div className="text-white font-medium py-2 px-4 rounded-md text-center">
-              ACCEPTED
-            </div>
-          )}
-
           {/* OWNER VIEW: IN PROGRESS (chat styled same as walker) */}
           {me?.role === "owner" && sessionStatus === WalkStatus.InProgress && (
-            <div className="absolute bottom-0 w-full bg-wsage p-5 rounded-t-xl">
+            <div className="absolute bottom-0 w-full p-5 rounded-t-xl">
               <div className="flex flex-col gap-4">
                 {/* Messages */}
                 <div
                   ref={chatRef}
-                  className="w-full h-32 bg-gray-700/60 rounded-md p-2 overflow-y-auto text-left"
+                  className="w-full h-32 bg-gray-600 rounded-md p-2 overflow-y-auto text-left"
                 >
                   {messages.length === 0 ? (
                     <p className="text-gray-300 text-sm text-center mt-4">
@@ -917,11 +915,10 @@ export default function Track() {
                     messages.map((m) => (
                       <div
                         key={m.id}
-                        className={`text-sm my-1 ${
-                          m.sender_id === me.id
-                            ? "text-blue-300 text-right"
-                            : "text-white text-left"
-                        }`}
+                        className={`text-sm my-1 ${m.sender_id === me.id
+                          ? "text-blue-300 text-right"
+                          : "text-white text-left"
+                          }`}
                       >
                         {m.message}
                       </div>
@@ -942,11 +939,11 @@ export default function Track() {
                       }
                     }}
                     placeholder="Message..."
-                    className="flex-grow bg-gray-700 text-white px-3 py-2 rounded-l-md focus:outline-none"
+                    className="flex-grow bg-gray-600 text-white px-3 py-2 rounded-l-md focus:outline-none"
                   />
                   <button
                     onClick={sendMessage}
-                    className="bg-blue-600 text-white px-4 rounded-r-md"
+                    className="bg-worange text-white px-4 rounded-r-md"
                   >
                     Send
                   </button>
@@ -955,7 +952,7 @@ export default function Track() {
             </div>
           )}
 
-          {/* TIME + IN PROGRESS LABEL */}
+          {/* TIME + IN PROGRESS LABEL
           {me?.role === "walker" &&
             sessionStatus === WalkStatus.InProgress &&
             start && (
@@ -968,7 +965,7 @@ export default function Track() {
             <div className="text-white font-medium py-2 px-4 rounded-md text-center">
               IN PROGRESS
             </div>
-          )}
+          )} */}
 
           {/* OWNER VIEW: RATE */}
           {me?.role === "owner" && sessionStatus === WalkStatus.Rate && (
@@ -1025,7 +1022,7 @@ export default function Track() {
                   </button>
 
                   <button
-                    className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-6 rounded-md"
+                    className="bg-worange/75 hover:bg-worange text-white font-medium py-2 px-6 rounded-md"
                     type="submit"
                   >
                     Submit
@@ -1034,8 +1031,9 @@ export default function Track() {
               </form>
             </>
           )}
+          {/* WALKER VIEW: SUMMARY */}
           {me?.role === "walker" && sessionStatus === WalkStatus.Rate && (
-            <div className="absolute bottom-0 w-full bg-wsage p-5 rounded-t-xl">
+            <div className="absolute bottom-0 w-full p-5 rounded-t-xl">
               <h2 className="text-2xl text-white font-bold text-center mb-4 h-20">
                 WALK COMPLETED
               </h2>

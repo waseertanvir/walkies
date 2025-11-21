@@ -169,7 +169,7 @@ export default function OwnerDogs() {
   if (loading) {
     return (
       <ProtectedRoute>
-        <div className="min-h-screen bg-[#619B8A] flex items-center justify-center text-white text-xl">
+        <div className="min-h-screen bg-wblue flex items-center justify-center text-white text-xl">
           Loading...
         </div>
       </ProtectedRoute>
@@ -178,7 +178,7 @@ export default function OwnerDogs() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-[#619B8A] p-4 relative overflow-hidden">
+      <div className="min-h-screen bg-wblue p-4 relative overflow-hidden">
         <button
           onClick={() => navigate(-1)}
           className="fixed top-4 left-4 z-50 bg-wolive text-black p-2 rounded-full shadow-lg hover:bg-green-600 transition"
@@ -187,11 +187,7 @@ export default function OwnerDogs() {
         </button>
 
         <div className="max-w-4xl mx-auto mt-16">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-bold text-white">Your Dogs</h1>
-            <Button onClick={() => setShowAddModal(true)}>Add Dog</Button>
-          </div>
-
+          <h1 className="text-3xl font-bold text-white mb-8 text-center">Your Dogs</h1>
           {dogs.length === 0 ? (
             <p className="text-white text-center mt-8">You have no dogs added yet.</p>
           ) : (
@@ -202,32 +198,42 @@ export default function OwnerDogs() {
                   className="bg-[#D9D9D9] p-4 cursor-pointer hover:shadow-lg transition"
                   onClick={() => handleCardClick(dog)}
                 >
-                  {dog.avatar_url ? (
-                    <img
-                      src={dog.avatar_url}
-                      alt={dog.name}
-                      className="w-32 h-32 mx-auto rounded-full object-cover mb-3"
-                    />
-                  ) : (
-                    <div className="w-32 h-32 mx-auto rounded-full bg-gray-400 flex items-center justify-center text-white text-3xl font-bold mb-3">
-                      {dog.name[0]}
+                  <div className='flex'>
+                    {dog.avatar_url ? (
+                      <img
+                        src={dog.avatar_url}
+                        alt={dog.name}
+                        className="w-28 h-28 mx-auto rounded-full object-cover mb-3"
+                      />
+                    ) : (
+                      <div className="w-28 h-28 mx-auto rounded-full bg-gray-400 flex items-center justify-center text-white text-3xl font-bold mb-3">
+                        {dog.name[0]}
+                      </div>
+                    )}
+                    <div className='w-[65%] px-4'>
+                      <h2 className="text-xl font-semibold text-wblue text-center mb-1">
+                        {dog.name}
+                      </h2>
+                      <p className="text-sm text-gray-700 pt-4 mb-1">
+                        <strong>Breed:</strong> {dog.breed}
+                      </p>
+                      <p className="text-sm text-gray-700 pt-1 mb-1">
+                        <strong>Description:</strong> {dog.description}
+                      </p>
                     </div>
-                  )}
-                  <h2 className="text-xl font-semibold text-wblue mb-1 text-center">
-                    {dog.name}
-                  </h2>
-                  <p className="text-sm text-gray-700 text-center mb-1">
-                    <strong>Breed:</strong> {dog.breed}
-                  </p>
+                  </div>
                 </Card>
               ))}
             </div>
           )}
+          <div className="flex justify-center items-center w-full mt-8">
+            <Button onClick={() => setShowAddModal(true)}>Add Dog</Button>
+          </div>
         </div>
 
         {showDogModal && selectedDog && (
           <div className="fixed inset-0 flex items-center justify-center z-50 backdrop-blur-sm">
-            <div className="bg-[#D9D9D9] p-6 rounded-xl shadow-xl w-full max-w-md relative border border-gray-300">
+            <div className="bg-wolive p-6 rounded-xl shadow-xl w-full max-w-md relative border border-gray-300">
               <button
                 className="absolute top-3 right-3 hover:text-gray-600"
                 onClick={() => setShowDogModal(false)}
@@ -236,34 +242,43 @@ export default function OwnerDogs() {
               </button>
 
               <div className="flex flex-col items-center text-center space-y-3">
-                {dogForm.avatar_url ? (
-                  <img
-                    src={dogForm.avatar_url}
-                    alt={dogForm.name}
-                    className="w-28 h-28 rounded-full object-cover border border-white shadow-md"
-                  />
-                ) : (
-                  <div className="w-28 h-28 rounded-full bg-gray-300 flex items-center justify-center border border-white shadow-md text-white text-xl font-bold">
-                    {dogForm.name ? dogForm.name[0] : '?'}
-                  </div>
-                )}
+                <div className="relative group w-28 h-28">
+                  {dogForm.avatar_url ? (
+                    <img
+                      src={dogForm.avatar_url}
+                      alt={dogForm.name}
+                      className="w-full h-full rounded-full object-cover border border-white shadow-md"
+                    />
+                  ) : (
+                    <div className="w-full h-full rounded-full bg-gray-300 flex items-center justify-center border border-white shadow-md text-white text-xl font-bold">
+                      {dogForm.name ? dogForm.name[0] : '?'}
+                    </div>
+                  )}
 
-                <label className="flex items-center gap-2 text-sm cursor-pointer text-wblue mt-2">
-                  <Upload size={16} />
-                  <span>{uploading ? 'Uploading...' : 'Upload Image'}</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                  />
-                </label>
+                  {/* Hover overlay upload button */}
+                  <label
+                    className="
+        absolute inset-0 flex flex-col items-center justify-center
+        bg-black/50 rounded-full text-white text-sm gap-1 cursor-pointer
+        opacity-0 group-hover:opacity-100 transition-opacity
+      "
+                  >
+                    <Upload size={18} />
+                    <span>{uploading ? 'Uploading...' : 'Upload Image'}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
 
                 <input
                   type="text"
                   value={dogForm.name}
                   onChange={e => handleInputChange('name', e.target.value)}
-                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-wblue"
+                  className="w-full px-3 py-2 bg-white/20 rounded-md focus:outline-none focus:bg-white/60"
                   placeholder="Dog's Name"
                 />
 
@@ -271,19 +286,19 @@ export default function OwnerDogs() {
                   type="text"
                   value={dogForm.breed}
                   onChange={e => handleInputChange('breed', e.target.value)}
-                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-wblue"
+                  className="w-full px-3 py-2 bg-white/20 rounded-md focus:outline-none focus:bg-white/60"
                   placeholder="Breed"
                 />
 
                 <textarea
                   value={dogForm.description}
                   onChange={e => handleInputChange('description', e.target.value)}
-                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-wblue"
+                  className="w-full px-3 py-2 bg-white/20 rounded-md focus:outline-none focus:bg-white/60"
                   placeholder="Description"
                 />
 
-                <Button onClick={handleSaveChanges} disabled={savingDog}>
-                  {savingDog ? 'Saving...' : 'Save Changes'}
+                <Button className='w-[35%]' onClick={handleSaveChanges} disabled={savingDog}>
+                  {savingDog ? 'Saving...' : 'Save'}
                 </Button>
               </div>
             </div>
@@ -292,7 +307,7 @@ export default function OwnerDogs() {
 
         {showAddModal && (
           <div className="fixed inset-0 flex items-center justify-center z-50 backdrop-blur-sm">
-            <div className="bg-[#D9D9D9] p-6 rounded-xl shadow-xl w-full max-w-md relative border border-gray-300">
+            <div className="bg-wolive p-6 rounded-xl shadow-xl w-full max-w-md relative border border-gray-300">
               <button
                 className="absolute top-3 right-3 hover:text-gray-600"
                 onClick={() => setShowAddModal(false)}
@@ -301,46 +316,79 @@ export default function OwnerDogs() {
               </button>
 
               <h2 className="text-xl font-bold mb-4 text-wblue text-center">Add New Dog</h2>
-              <div className="space-y-3">
-                {['name', 'breed', 'description'].map(field => (
-                  <div key={field}>
-                    <label className="block text-sm font-medium text-wblue mb-1 capitalize">
-                      {field}
-                    </label>
-                    <input
-                      type="text"
-                      value={dogForm[field as keyof typeof dogForm]}
-                      onChange={e => handleInputChange(field, e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-wblue"
-                      placeholder={
-                        field === 'name'
-                          ? "Dog's name"
-                          : field === 'breed'
-                          ? 'Breed'
-                          : 'Description (optional)'
-                      }
+
+              <div className="flex flex-col items-center text-center space-y-3">
+                {/* Avatar + hover upload overlay */}
+                <div className="relative group w-28 h-28">
+                  {dogForm.avatar_url ? (
+                    <img
+                      src={dogForm.avatar_url}
+                      alt={dogForm.name}
+                      className="w-full h-full rounded-full object-cover border border-white shadow-md"
                     />
-                  </div>
-                ))}
+                  ) : (
+                    <div className="w-full h-full rounded-full bg-gray-300 flex items-center justify-center border border-white shadow-md text-white text-xl font-bold">
+                      ?
+                    </div>
+                  )}
 
-                <label className="flex items-center gap-2 text-sm cursor-pointer text-wblue">
-                  <Upload size={16} />
-                  <span>{uploading ? 'Uploading...' : 'Upload Image'}</span>
+                  <label
+                    className="
+              absolute inset-0 flex flex-col items-center justify-center
+              bg-black/50 rounded-full text-white text-sm gap-1 cursor-pointer
+              opacity-0 group-hover:opacity-100 transition-opacity
+            "
+                  >
+                    <Upload size={18} />
+                    <span>{uploading ? 'Uploading...' : 'Upload Image'}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+
+                {/* Form fields with ONLY placeholders */}
+                <div className="w-full">
                   <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
+                    type="text"
+                    value={dogForm.name}
+                    onChange={e => handleInputChange('name', e.target.value)}
+                    className="w-full px-3 py-2 bg-white/20 rounded-md focus:outline-none focus:bg-white/60"
+                    placeholder="Dog's name"
                   />
-                </label>
+                </div>
 
-                <Button onClick={saveDog} disabled={savingDog}>
+                <div className="w-full">
+                  <input
+                    type="text"
+                    value={dogForm.breed}
+                    onChange={e => handleInputChange('breed', e.target.value)}
+                    className="w-full px-3 py-2 bg-white/20 rounded-md focus:outline-none focus:bg-white/60"
+                    placeholder="Breed"
+                  />
+                </div>
+
+                <div className="w-full">
+                  <input
+                    type="text"
+                    value={dogForm.description}
+                    onChange={e => handleInputChange('description', e.target.value)}
+                    className="w-full px-3 py-2 bg-white/20 rounded-md focus:outline-none focus:bg-white/60"
+                    placeholder="Description (optional)"
+                  />
+                </div>
+
+                <Button onClick={saveDog} disabled={savingDog} className="mt-2">
                   {savingDog ? 'Saving...' : 'Add Dog'}
                 </Button>
               </div>
             </div>
           </div>
         )}
+
       </div>
     </ProtectedRoute>
   );

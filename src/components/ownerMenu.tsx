@@ -12,13 +12,13 @@ export default function OwnerMenu() {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="bg-wolive text-black p-2 rounded-full"
+          className="bg-wsage/75 backdrop-blur-sm text-black p-2 rounded-full"
         >
           <Menu size={30} />
         </button>
       )}
       {open && (
-        <div className="bg-wolive rounded-3xl flex-row">
+        <div className="bg-wsage/75 backdrop-blur-sm rounded-3xl flex-row">
           <button
             onClick={() => setOpen(false)}
             className="p-2 rounded-full"
@@ -49,11 +49,6 @@ export default function OwnerMenu() {
             <li>
               <button className="py-3" onClick={()=>navigate("/owner/history")}>
                 Walk History
-              </button>
-            </li>
-            <li>
-              <button className="py-3" onClick={()=>navigate("/owner/payment")}>
-                Payment Settings
               </button>
             </li>
             <li>

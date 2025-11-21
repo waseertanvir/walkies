@@ -150,7 +150,7 @@ export default function MainProfile() {
 
   if (loading) return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-[#619B8A] flex items-center justify-center">
+      <div className="min-h-screen bg-wblue flex items-center justify-center">
         <div className="text-white text-xl">Loading...</div>
       </div>
     </ProtectedRoute>
@@ -158,7 +158,7 @@ export default function MainProfile() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-[#619B8A] p-4">
+      <div className="min-h-screen bg-wblue p-4">
         <div className="top-4 left-4 z-50">
           <button
             onClick={() => {
@@ -166,22 +166,36 @@ export default function MainProfile() {
               else if (profile?.role === 'owner') navigate('/owner/dashboard');
               else navigate('/');
             }}
-            className="fixed top-4 left-4 z-50 bg-wolive text-black p-2 rounded-full shadow-lg hover:bg-green-600 transition"
+            className="fixed top-4 left-4 z-50 bg-wsage/75 backdrop-blur-sm text-black p-2 rounded-full shadow-lg"
           >
             <ChevronLeft size={30} />
           </button>
         </div>
 
-        <div className="max-w-3xl mx-auto mt-16">
-          <h1 className="text-3xl font-bold text-white mb-6 text-center">{profile.full_name}</h1>
+        <div className="max-w-3xl mx-auto mt-8">
+          <h1 className="text-3xl font-bold text-white mb-8 text-center">{profile.full_name}</h1>
 
           <div className="flex flex-col items-center mb-8">
-            <div className="w-32 h-32 rounded-full bg-gray-300 border-4 border-white flex items-center justify-center shadow-lg overflow-hidden">
-              {avatarUrl ? (
-                <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-white text-xl">No Image</span>
-              )}
+            <div className="relative group w-32 h-32">
+              <div className="w-full h-full rounded-full bg-gray-300 border-4 border-white flex items-center justify-center shadow-lg overflow-hidden">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-white text-xl">No Image</span>
+                )}
+              </div>
+
+              {/* Hover Overlay Button */}
+              <button
+                onClick={handleUploadClick}
+                disabled={uploading}
+                className="
+                  absolute inset-0 flex items-center justify-center
+                  bg-black/50 text-white text-sm rounded-full opacity-0
+                  group-hover:opacity-100 transition-opacity"
+              >
+                {uploading ? 'Uploading...' : 'Upload Image'}
+              </button>
             </div>
 
             <input
@@ -191,16 +205,13 @@ export default function MainProfile() {
               className="hidden"
               onChange={handleFileChange}
             />
-            <Button onClick={handleUploadClick} disabled={uploading} className="mt-4">
-              {uploading ? 'Uploading...' : 'Upload Image'}
-            </Button>
           </div>
 
           <div className='grid mb-6'>
-            <Card className="bg-[#D9D9D9] p-4 w-full">
+            <Card>
               <h2 className="font-semibold text-xs text-gray-600 mb-2">Full Name</h2>
               <input
-                className="w-full font-semibold"
+                className="w-full px-3 py-2 bg-white/20 rounded-md focus:outline-none focus:bg-white/60"
                 type="text"
                 value={formData.full_name}
                 onChange={(e) => setFormData(prev => ({ ...prev, full_name: e.target.value }))}
@@ -209,20 +220,20 @@ export default function MainProfile() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <Card className="bg-[#D9D9D9] p-4">
+            <Card>
               <h2 className="font-semibold text-xs text-gray-600 mb-2">Phone</h2>
               <input
-                className="w-full font-semibold"
+                className="w-full px-3 py-2 bg-white/20 rounded-md focus:outline-none focus:bg-white/60"
                 type="text"
                 value={formData.phone}
                 onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
               />
             </Card>
 
-            <Card className="bg-[#D9D9D9] p-4">
+            <Card>
               <h2 className="font-semibold text-xs text-gray-600 mb-2">Email</h2>
               <input
-                className="w-full font-semibold"
+                className="w-full px-3 py-2 bg-white/20 rounded-md focus:outline-none focus:bg-white/60"
                 type="email"
                 value={formData.email}
                 disabled
@@ -230,14 +241,14 @@ export default function MainProfile() {
             </Card>
           </div>
 
-          <div className='grid mb-6 w-full'>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             {canChangeRole ? (
-              <Card className="bg-[#D9D9D9] p-4 mb-6">
+              <Card>
                 <h2 className="font-semibold text-xs text-gray-600 mb-2">Role</h2>
                 <select
                   value={formData.role}
                   onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-wblue"
+                  className="w-full px-3 py-2 bg-white/20 rounded-md focus:outline-none focus:bg-white/60"
                 >
                   <option value="">Select your role</option>
                   <option value="owner">Pet Owner</option>
@@ -245,18 +256,17 @@ export default function MainProfile() {
                 </select>
               </Card>
             ) : (
-              <Card className="bg-[#D9D9D9] p-4 mb-6">
-                <h2 className="font-semibold text-xs text-gray-600 mb-2">Role</h2>
-                <div className="px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 capitalize">
+              <Card>
+                <h2 className="font-semibold text-xs text-gray-600 mb-2">Role: cannot be changed once set</h2>
+                <div className="w-full px-3 py-2 rounded-md text-black capitalize">
                   {formData.role}
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Role cannot be changed once set</p>
               </Card>
             )}
 
             {formData.role === 'walker' && (
               <>
-                <Card className="bg-[#D9D9D9] p-4 mb-6">
+                <Card>
                   <h2 className="font-semibold text-xs text-gray-600 mb-2">Years of Experience</h2>
                   <input
                     type="number"
@@ -266,16 +276,16 @@ export default function MainProfile() {
                       ...prev,
                       years_experience: parseInt(e.target.value) || 0
                     }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-wblue"
+                    className="w-full px-3 py-2 bg-white/20 rounded-md focus:outline-none focus:bg-white/60"
                   />
                 </Card>
 
-                <Card className="bg-[#D9D9D9] p-4 mb-6">
+                <Card >
                   <h2 className="font-semibold text-xs text-gray-600 mb-2">Bio</h2>
                   <textarea
                     value={formData.bio}
                     onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-wblue"
+                    className="w-full px-3 py-2 bg-white/20 rounded-md focus:outline-none focus:bg-white/60"
                     rows={4}
                   />
                 </Card>
@@ -283,13 +293,13 @@ export default function MainProfile() {
             )}
           </div>
 
-          <div className="grid justify-center">
+          <div className="flex justify-center gap-4">
             {profile?.role === 'owner' && (
-              <Button className='mb-6' onClick={() => navigate('/view-dogs')}>
+              <Button className='mb-6 w-[35%]' onClick={() => navigate('/view-dogs')}>
                 Edit Dogs
               </Button>
             )}
-            <Button onClick={handleSave} disabled={saving}>
+            <Button className='mb-6 w-[35%]' onClick={handleSave} disabled={saving}>
               {saving ? 'Saving...' : 'Save'}
             </Button>
           </div>
