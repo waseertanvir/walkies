@@ -35,6 +35,7 @@ type Session = {
   walker_id: string | null;
   status: string;
   start_time: string;
+  compensation: number;
   duration_minutes: number;
   activity: string;
 };
@@ -410,11 +411,18 @@ export default function Track() {
     const now = new Date(Date.now());
     const formattedDate = now.toISOString().slice(0, 16);
 
+    const start = new Date(session.start_time);
+    const durationMs = now.getTime() - start.getTime();
+    const durationMinutes = durationMs / 1000 / 60;
+
+    const finalBill = durationMinutes * session.compensation;
+
     const { data } = await supabase
       .from("sessions")
       .update({
         status: WalkStatus.Rate,
         end_time: formattedDate,
+        compensation: finalBill,
       })
       .select("start_time, end_time")
       .eq("id", session.id);

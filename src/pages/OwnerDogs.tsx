@@ -185,8 +185,7 @@ export default function OwnerDogs() {
         >
           <ChevronLeft size={30} />
         </button>
-
-        <div className="max-w-4xl mx-auto mt-16">
+        <div className="max-w-3xl mx-auto mt-8">
           <h1 className="text-3xl font-bold text-white mb-8 text-center">Your Dogs</h1>
           {dogs.length === 0 ? (
             <p className="text-white text-center mt-8">You have no dogs added yet.</p>
@@ -198,28 +197,30 @@ export default function OwnerDogs() {
                   className="bg-[#D9D9D9] p-4 cursor-pointer hover:shadow-lg transition"
                   onClick={() => handleCardClick(dog)}
                 >
-                  <div className='flex'>
+                  <div className='flex items-center'>
                     {dog.avatar_url ? (
                       <img
                         src={dog.avatar_url}
                         alt={dog.name}
-                        className="w-28 h-28 mx-auto rounded-full object-cover mb-3"
+                        className="w-28 h-28 mx-auto rounded-full object-cover"
                       />
                     ) : (
-                      <div className="w-28 h-28 mx-auto rounded-full bg-gray-400 flex items-center justify-center text-white text-3xl font-bold mb-3">
+                      <div className="w-28 h-28 mx-auto rounded-full bg-gray-400 flex items-center justify-center text-white text-3xl font-bold">
                         {dog.name[0]}
                       </div>
                     )}
-                    <div className='w-[65%] px-4'>
+                    <div className='w-[65%] px-4 flex flex-col items-center'>
                       <h2 className="text-xl font-semibold text-wblue text-center mb-1">
                         {dog.name}
                       </h2>
-                      <p className="text-sm text-gray-700 pt-4 mb-1">
+                      <div>
+                      <p className="text-sm text-gray-700 pt-1 mb-1">
                         <strong>Breed:</strong> {dog.breed}
                       </p>
-                      <p className="text-sm text-gray-700 pt-1 mb-1">
+                      <p className="text-sm text-gray-700 pt-1">
                         <strong>Description:</strong> {dog.description}
                       </p>
+                      </div>
                     </div>
                   </div>
                 </Card>

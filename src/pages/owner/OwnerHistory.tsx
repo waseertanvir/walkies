@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { supabase } from '../../supabaseClient';
 import ProtectedRoute from '../../auth/ProtectedRoute';
-import { Card, Button, StatusPill } from '../../components/ui';
+import { Card } from '../../components/ui';
 import { ChevronLeft } from 'lucide-react';
 import { WalkStatus } from '../../constants/WalkStatus';
 
@@ -10,7 +10,7 @@ interface Session {
   id: string;
   status: string;
   start_time: string;
-  end_time: string | null;
+  end_time: string;
   duration_minutes: number;
   compensation: number;
   notes: string;
@@ -22,10 +22,14 @@ interface Session {
   created_at: string;
 }
 
-interface Pet {
+interface Dog {
   id: string;
+  owner_id: string;
   name: string;
   breed: string;
+  description?: string;
+  avatar_url?: string;
+  created_at?: string;
 }
 
 interface WalkerProfile {
@@ -36,7 +40,7 @@ interface WalkerProfile {
 export default function OwnerHistory() {
   const navigate = useNavigate();
   const [sessions, setSessions] = useState<Session[]>([]);
-  const [pets, setPets] = useState<Record<string, Pet>>({});
+  const [pets, setPets] = useState<Record<string, Dog>>({});
   const [walkers, setWalkers] = useState<Record<string, WalkerProfile>>({});
   const [loading, setLoading] = useState(true);
 
@@ -64,25 +68,23 @@ export default function OwnerHistory() {
 
         setSessions(data || []);
 
-        // Fetch pets data
         if (data && data.length > 0) {
           const petIds = data.map(session => session.pet_id);
           const { data: petsData } = await supabase
             .from('pets')
-            .select('id, name, breed')
+            .select('id, owner_id, name, breed, description, avatar_url, created_at')
             .in('id', petIds);
 
-          const petsMap: Record<string, Pet> = {};
+          const petsMap: Record<string, Dog> = {};
           petsData?.forEach(pet => {
-            petsMap[pet.id] = pet;
+            petsMap[pet.id] = pet as Dog;
           });
           setPets(petsMap);
 
-          // Fetch walkers data
           const walkerIds = data
             .filter(session => session.walker_id)
             .map(session => session.walker_id!);
-          
+
           if (walkerIds.length > 0) {
             const { data: walkersData } = await supabase
               .from('profiles')
@@ -121,8 +123,8 @@ export default function OwnerHistory() {
   if (loading) {
     return (
       <ProtectedRoute>
-        <div className="min-h-screen bg-wblue flex items-center justify-center">
-          <div className="text-white text-xl">Loading walk history...</div>
+        <div className="min-h-screen bg-wblue flex items-center justify-center text-white text-xl">
+          Loading walk history...
         </div>
       </ProtectedRoute>
     );
@@ -130,99 +132,67 @@ export default function OwnerHistory() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-wblue p-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="relative mb-6">
-            <button
-              onClick={() => navigate('/owner/dashboard')}
-              className="fixed top-4 left-4 z-50 bg-wsage/75 backdrop-blur-sm text-black p-2 rounded-full shadow-lg"
-            >
-              <ChevronLeft size={30} />
-            </button>
-            <div className="flex justify-center">
-              <h1 className="text-2xl font-bold text-white text-center mt-2">Walk History</h1>
-            </div>
-          </div>
-
+      <div className="min-h-screen bg-wblue p-4 relative overflow-hidden">
+        <button
+          onClick={() => navigate(-1)}
+          className="fixed top-4 left-4 z-50 bg-wsage/75 backdrop-blur-sm text-black p-2 rounded-full shadow-lg"
+        >
+          <ChevronLeft size={30} />
+        </button>
+        <div className="max-w-3xl mx-auto mt-8">
+          <h1 className="text-3xl font-bold text-white mb-8 text-center">
+            Walk History
+          </h1>
           {sessions.length === 0 ? (
-            <Card>
-              <div className="text-center py-8">
-                <div className="w-16 h-16 bg-wyellow rounded-full flex items-center justify-center text-white text-2xl mx-auto mb-4">
-                  🐕
-                </div>
-                <h3 className="text-lg font-semibold text-wblue mb-2">No Completed Walks Yet</h3>
-                <p className="text-gray-600 mb-4">You haven't completed any walks yet.</p>
-              </div>
-            </Card>
+            <p className="text-white text-center mt-8">
+              You haven't completed any walks yet.
+            </p>
           ) : (
-            <div className="space-y-4">
-              {sessions.map((session) => (
-                <Card key={session.id} className="hover:shadow-lg transition-shadow">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-3">
-                        <h3 className="text-lg font-semibold text-wblue">
-                          {pets[session.pet_id]?.name} ({pets[session.pet_id]?.breed})
-                        </h3>
-                        <StatusPill status={session.status} />
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div>
-                          <p className="text-sm text-gray-600">
-                            <span className="font-medium">Date:</span> {session.end_time ? formatDate(session.end_time) : formatDate(session.start_time)}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            <span className="font-medium">Duration:</span> {session.duration_minutes} minutes
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            <span className="font-medium">Compensation:</span> ${session.compensation}
-                          </p>
-                        </div>
-                        <div>
-                          {session.walker_id && walkers[session.walker_id] ? (
-                            <p className="text-sm text-gray-600">
-                              <span className="font-medium">Walker:</span> {walkers[session.walker_id].full_name}
-                            </p>
-                          ) : (
-                            <p className="text-sm text-gray-500">
-                              <span className="font-medium">Walker:</span> Not assigned
-                            </p>
-                          )}
-                          {session.meeting_location && (
-                            <p className="text-sm text-gray-600">
-                              <span className="font-medium">Location:</span> {session.meeting_location}
-                            </p>
-                          )}
-                          {session.end_time && (
-                            <p className="text-sm text-gray-600">
-                              <span className="font-medium">Completed:</span> {formatDateTime(session.end_time)}
-                            </p>
-                          )}
-                        </div>
-                      </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {sessions.map(session => {
+                const pet = pets[session.pet_id];
+                const walker = session.walker_id
+                  ? walkers[session.walker_id]
+                  : undefined;
 
-                      {session.notes && (
-                        <div className="mb-3">
-                          <p className="text-sm text-gray-600">
-                            <span className="font-medium">Notes:</span> {session.notes}
-                          </p>
+                return (
+                  <Card
+                    key={session.id}
+                    className="bg-[#D9D9D9] p-4 cursor-pointer hover:shadow-lg transition"
+                    onClick={() => handleViewDetails(session.id)}
+                  >
+                    <div className="flex items-center">
+                      {pet?.avatar_url ? (
+                        <img
+                          src={pet.avatar_url}
+                          alt={pet.name}
+                          className="w-28 h-28 mx-auto rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-28 h-28 mx-auto rounded-full bg-gray-400 flex items-center justify-center text-white text-3xl font-bold">
+                          {pet?.name ? pet.name[0] : '?'}
                         </div>
                       )}
+                      <div className="w-[65%] px-4">
+                        <h2 className="text-xl font-semibold text-wblue text-center mb-1">
+                          {pet ? pet.name : 'Unknown Pet'}
+                        </h2>
+                        <p className="text-sm text-gray-700 pt-1">
+                          <strong>Date:</strong>{' '}
+                          {formatDate(session.end_time)}
+                        </p>
+                        <p className="text-sm text-gray-700 pt-1">
+                          <strong>Compensation:</strong> ${session.compensation}
+                        </p>
+                        <p className="text-sm text-gray-700 pt-1">
+                          <strong>Walker:</strong>{' '}
+                          {walker ? walker.full_name : 'Not assigned'}
+                        </p>
+                      </div>
                     </div>
-
-                    <div className="ml-4 flex flex-col space-y-2">
-                      <Button
-                        onClick={() => handleViewDetails(session.id)}
-                        size="sm"
-                        variant="secondary"
-                      >
-                        View Details
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                );
+              })}
             </div>
           )}
         </div>
@@ -230,4 +200,3 @@ export default function OwnerHistory() {
     </ProtectedRoute>
   );
 }
-

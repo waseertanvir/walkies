@@ -18,6 +18,7 @@ interface Session {
   compensation: number;
   notes: string;
   meeting_location: string;
+  dropoff_location: string;
   special_instructions: string;
   walker_id: string | null;
   pet_id: string;
@@ -161,31 +162,67 @@ export default function WalkHistoryDetail() {
 
   // Debug: Log when locationPoints changes
   useEffect(() => {
-    console.log('📍 locationPoints state updated:', locationPoints.length, 'points');
+    console.log('locationPoints state updated:', locationPoints.length, 'points');
     if (locationPoints.length > 0) {
-      console.log('📍 First locationPoint:', locationPoints[0]);
-      console.log('📍 Last locationPoint:', locationPoints[locationPoints.length - 1]);
+      console.log('First locationPoint:', locationPoints[0]);
+      console.log('Last locationPoint:', locationPoints[locationPoints.length - 1]);
     }
   }, [locationPoints]);
 
   const path: LatLng[] = useMemo(() => {
     const mapped = locationPoints.map(p => ({ lat: p.lat, lng: p.long }));
-    console.log('🗺️ Path useMemo - locationPoints:', locationPoints.length, 'mapped path:', mapped.length);
+    console.log('Path useMemo - locationPoints:', locationPoints.length, 'mapped path:', mapped.length);
     if (mapped.length > 0) {
-      console.log('🗺️ First path point:', mapped[0]);
-      console.log('🗺️ Last path point:', mapped[mapped.length - 1]);
+      console.log('First path point:', mapped[0]);
+      console.log('Last path point:', mapped[mapped.length - 1]);
     }
     return mapped;
   }, [locationPoints]);
 
-  const mapCenter = useMemo<LatLng>(() => {
-    if (path.length > 0) {
-      // Use middle point of path as center
-      const midIndex = Math.floor(path.length / 2);
-      return path[midIndex];
+  const { center: mapCenter, zoom: mapZoom } = useMemo(() => {
+    if (path.length === 0) {
+      return {
+        center: { lat: 49.2488, lng: -123.0025 },
+        zoom: 14
+      };
     }
-    return { lat: 49.2488, lng: -123.0025 }; // Default to Burnaby
+
+    let minLat = path[0].lat;
+    let maxLat = path[0].lat;
+    let minLng = path[0].lng;
+    let maxLng = path[0].lng;
+
+    path.forEach(p => {
+      if (p.lat < minLat) minLat = p.lat;
+      if (p.lat > maxLat) maxLat = p.lat;
+      if (p.lng < minLng) minLng = p.lng;
+      if (p.lng > maxLng) maxLng = p.lng;
+    });
+
+    // Midpoint of extremes (not average of all points)
+    const midLat = (minLat + maxLat) / 2;
+    const midLng = (minLng + maxLng) / 2;
+
+    const latSpan = maxLat - minLat;
+    const lngSpan = maxLng - minLng;
+    const maxSpan = Math.max(latSpan, lngSpan);
+
+    let zoom;
+    if (maxSpan < 0.0005) zoom = 17;
+    else if (maxSpan < 0.001) zoom = 16;
+    else if (maxSpan < 0.005) zoom = 15;
+    else if (maxSpan < 0.01) zoom = 14;
+    else if (maxSpan < 0.05) zoom = 13;
+    else if (maxSpan < 0.1) zoom = 12;
+    else if (maxSpan < 0.5) zoom = 11;
+    else zoom = 10;
+
+    return {
+      center: { lat: midLat, lng: midLng },
+      zoom
+    };
   }, [path]);
+
 
   const formatDateTime = (dateString: string) => {
     return new Date(dateString).toLocaleString();
@@ -218,97 +255,139 @@ export default function WalkHistoryDetail() {
     );
   }
 
+  const startTime = formatTime(session.start_time);
+  const endTime = session.end_time ? formatTime(session.end_time) : null;
+
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-wblue p-4">
         <div className="max-w-6xl mx-auto">
           <button
             onClick={() => navigate(-1)}
-            className="fixed top-4 left-4 z-50 bg-wsage/75 backdrop-blur-sm text-black p-2 rounded-full shadow-lg"
+            className="fixed top-4 left-4 z-50 bg-wsage/75 backdrop-blur-sm text-black p-2 rounded-full shadow-lg flex items-center justify-center"
           >
             <ChevronLeft size={30} />
           </button>
 
-          <div className="mb-6 mt-12">
-            <h1 className="text-2xl font-bold text-white text-center">Walk Details</h1>
+          <div className="mb-6 mt-12 flex flex-col items-center gap-2">
+            <h1 className="text-3xl font-bold text-white text-center">
+              {pet && (
+                <>
+                  {pet.name} ({pet.breed})
+                </>
+              )}
+            </h1>
           </div>
 
           {/* Walk Information Card */}
-          <Card className="mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-wblue">
-                {pet?.name} ({pet?.breed})
-              </h2>
-              <StatusPill status={session.status} />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <p className="text-sm text-gray-600 mb-2">
-                  <span className="font-medium">Owner:</span> {owner?.full_name || 'Unknown'}
-                </p>
+          <Card className="mb-6 bg-[#D9D9D9] rounded-2xl shadow-md p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <div className="flex justify-between items-baseline text-sm text-gray-800">
+                  <span className="font-semibold">Owner</span>
+                  <span className="text-right text-gray-700">
+                    {owner?.full_name || 'Unknown'}
+                  </span>
+                </div>
                 {walker && (
-                  <p className="text-sm text-gray-600 mb-2">
-                    <span className="font-medium">Walker:</span> {walker.full_name}
-                  </p>
+                  <div className="flex justify-between items-baseline text-sm text-gray-800">
+                    <span className="font-semibold">Walker</span>
+                    <span className="text-right text-gray-700">
+                      {walker.full_name}
+                    </span>
+                  </div>
                 )}
-                <p className="text-sm text-gray-600 mb-2">
-                  <span className="font-medium">Start Time:</span> {formatDateTime(session.start_time)}
-                </p>
+                <div className="flex justify-between items-baseline text-sm text-gray-800">
+                  <span className="font-semibold">Start Time</span>
+                  <span className="text-right text-gray-700">
+                    {formatDateTime(session.start_time)}
+                  </span>
+                </div>
                 {session.end_time && (
-                  <p className="text-sm text-gray-600 mb-2">
-                    <span className="font-medium">End Time:</span> {formatDateTime(session.end_time)}
-                  </p>
+                  <div className="flex justify-between items-baseline text-sm text-gray-800">
+                    <span className="font-semibold">End Time</span>
+                    <span className="text-right text-gray-700">
+                      {formatDateTime(session.end_time)}
+                    </span>
+                  </div>
                 )}
               </div>
-              <div>
-                <p className="text-sm text-gray-600 mb-2">
-                  <span className="font-medium">Duration:</span> {session.duration_minutes} minutes
-                </p>
-                <p className="text-sm text-gray-600 mb-2">
-                  <span className="font-medium">Compensation:</span> ${session.compensation}
-                </p>
+
+              <div className="space-y-3">
+                <div className="flex justify-between items-baseline text-sm text-gray-800">
+                  <span className="font-semibold">Duration</span>
+                  <span className="text-right text-gray-700">
+                    {session.duration_minutes} minutes
+                  </span>
+                </div>
+                <div className="flex justify-between items-baseline text-sm text-gray-800">
+                  <span className="font-semibold">Compensation</span>
+                  <span className="text-right text-gray-700">
+                    ${session.compensation}
+                  </span>
+                </div>
                 {session.meeting_location && (
-                  <p className="text-sm text-gray-600 mb-2">
-                    <span className="font-medium">Meeting Location:</span> {session.meeting_location}
-                  </p>
+                  <div className="flex flex-col text-sm text-gray-800">
+                    <span className="font-semibold mb-1">Pickup Location</span>
+                    <span className="text-gray-700">
+                      {session.meeting_location}
+                    </span>
+                  </div>
+                )}
+                {session.dropoff_location && (
+                  <div className="flex flex-col text-sm text-gray-800">
+                    <span className="font-semibold mb-1">Dropoff Location</span>
+                    <span className="text-gray-700">
+                      {session.dropoff_location}
+                    </span>
+                  </div>
                 )}
                 {session.activity && (
-                  <p className="text-sm text-gray-600 mb-2">
-                    <span className="font-medium">Activity:</span> {session.activity}
-                  </p>
+                  <div className="flex flex-col text-sm text-gray-800">
+                    <span className="font-semibold mb-1">Activity</span>
+                    <span className="text-gray-700">{session.activity}</span>
+                  </div>
                 )}
               </div>
             </div>
 
             {pet?.description && (
-              <div className="mb-3">
-                <p className="text-sm text-gray-600">
-                  <span className="font-medium">Pet Description:</span> {pet.description}
+              <div className="mt-6">
+                <p className="text-sm text-gray-800 font-semibold mb-1">
+                  Pet Description
                 </p>
+                <p className="text-sm text-gray-700">{pet.description}</p>
               </div>
             )}
 
             {session.notes && (
-              <div className="mb-3">
-                <p className="text-sm text-gray-600">
-                  <span className="font-medium">Notes:</span> {session.notes}
+              <div className="mt-4">
+                <p className="text-sm text-gray-800 font-semibold mb-1">
+                  Notes
                 </p>
+                <p className="text-sm text-gray-700">{session.notes}</p>
               </div>
             )}
 
             {session.special_instructions && (
-              <div className="mb-3">
-                <p className="text-sm text-gray-600">
-                  <span className="font-medium">Special Instructions:</span> {session.special_instructions}
+              <div className="mt-4">
+                <p className="text-sm text-gray-800 font-semibold mb-1">
+                  Special Instructions
+                </p>
+                <p className="text-sm text-gray-700">
+                  {session.special_instructions}
                 </p>
               </div>
             )}
 
             {locationPoints.length > 0 && (
-              <div className="mt-4 pt-4 border-t">
-                <p className="text-sm text-gray-600">
-                  <span className="font-medium">Location Points Recorded:</span> {locationPoints.length} points
+              <div className="mt-4 pt-4 border-t border-gray-300">
+                <p className="text-sm text-gray-800 font-semibold mb-1">
+                  Location Data
+                </p>
+                <p className="text-sm text-gray-700">
+                  {locationPoints.length} points recorded from {startTime}
+                  {endTime ? ` to ${endTime}` : ''}
                 </p>
               </div>
             )}
@@ -319,71 +398,83 @@ export default function WalkHistoryDetail() {
             console.log('🎨 Rendering check - path.length:', path.length, 'locationPoints.length:', locationPoints.length);
             return path.length > 0;
           })() ? (
-            <Card className="mb-6">
-              <h3 className="text-lg font-semibold text-wblue mb-4">Walk Path</h3>
-              <div className="w-full" style={{ height: '400px' }}>
+            <Card className="mb-6 bg-[#D9D9D9] rounded-2xl shadow-md p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-lg font-semibold text-wblue">Walk Path</h3>
+                <div className="flex gap-3 text-xs text-gray-700">
+                  <div className="flex items-center gap-1">
+                    <span className="inline-block w-3 h-3 rounded-full bg-green-600" />
+                    <span>Pickup</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="inline-block w-3 h-3 rounded-full bg-red-600" />
+                    <span>Dropoff</span>
+                  </div>
+                </div>
+              </div>
+              <div className="w-full rounded-xl overflow-hidden" style={{ height: '400px' }}>
                 {import.meta.env.VITE_GOOGLE_MAPS_API_KEY ? (
                   <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}>
                     <Map
                       mapId={import.meta.env.VITE_GOOGLE_MAP_ID}
                       style={{ width: '100%', height: '100%' }}
                       defaultCenter={mapCenter}
-                      defaultZoom={15}
+                      defaultZoom={mapZoom}
                       disableDefaultUI
                       clickableIcons={false}
                     >
-                    <TrajectoryLine
-                      path={path}
-                      options={{
-                        strokeColor: "#ff6200ff",
-                        strokeOpacity: 1.0,
-                        strokeWeight: 4,
-                      }}
-                    />
+                      <TrajectoryLine
+                        path={path}
+                        options={{
+                          strokeColor: "#ff6200ff",
+                          strokeOpacity: 1.0,
+                          strokeWeight: 4,
+                        }}
+                      />
 
-                    {/* Start marker */}
-                    {path[0] && (
-                      <AdvancedMarker position={path[0]}>
-                        <div
-                          style={{
-                            width: 20,
-                            height: 20,
-                            borderRadius: '50%',
-                            backgroundColor: '#28A745',
-                            border: '3px solid white',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                          title="Start"
-                        >
-                          <span style={{ color: 'white', fontSize: '12px', fontWeight: 'bold' }}>S</span>
-                        </div>
-                      </AdvancedMarker>
-                    )}
+                      {/* Pickup marker (first point) */}
+                      {path[0] && (
+                        <AdvancedMarker position={path[1]}>
+                          <div
+                            style={{
+                              width: 24,
+                              height: 24,
+                              borderRadius: '50%',
+                              backgroundColor: '#16A34A', // green-600
+                              border: '3px solid white',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                            title="Pickup"
+                          >
+                            <span style={{ color: 'white', fontSize: '12px', fontWeight: 'bold' }}>P</span>
+                          </div>
+                        </AdvancedMarker>
+                      )}
 
-                    {/* End marker */}
-                    {path[path.length - 1] && (
-                      <AdvancedMarker position={path[path.length - 1]}>
-                        <div
-                          style={{
-                            width: 20,
-                            height: 20,
-                            borderRadius: '50%',
-                            backgroundColor: '#DC3545',
-                            border: '3px solid white',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                          title="End"
-                        >
-                          <span style={{ color: 'white', fontSize: '12px', fontWeight: 'bold' }}>E</span>
-                        </div>
-                      </AdvancedMarker>
-                    )}
-                  </Map>
-                </APIProvider>
+                      {/* Dropoff marker (last point) */}
+                      {path[path.length - 1] && (
+                        <AdvancedMarker position={path[path.length - 1]}>
+                          <div
+                            style={{
+                              width: 24,
+                              height: 24,
+                              borderRadius: '50%',
+                              backgroundColor: '#DC2626', // red-600
+                              border: '3px solid white',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                            title="Dropoff"
+                          >
+                            <span style={{ color: 'white', fontSize: '12px', fontWeight: 'bold' }}>D</span>
+                          </div>
+                        </AdvancedMarker>
+                      )}
+                    </Map>
+                  </APIProvider>
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-gray-100 rounded">
                     <div className="text-center p-4">
@@ -397,9 +488,11 @@ export default function WalkHistoryDetail() {
               </div>
             </Card>
           ) : (
-            <Card className="mb-6">
+            <Card className="mb-6 bg-[#D9D9D9] rounded-2xl shadow-md">
               <div className="text-center py-8">
-                <p className="text-gray-600">No location data available for this walk.</p>
+                <p className="text-gray-700 font-semibold">
+                  No location data available for this walk.
+                </p>
                 <p className="text-sm text-gray-500 mt-2">
                   Debug: path.length={path.length}, locationPoints.length={locationPoints.length}
                 </p>
@@ -411,4 +504,3 @@ export default function WalkHistoryDetail() {
     </ProtectedRoute>
   );
 }
-

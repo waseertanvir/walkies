@@ -174,7 +174,6 @@ export default function MainProfile() {
 
         <div className="max-w-3xl mx-auto mt-8">
           <h1 className="text-3xl font-bold text-white mb-8 text-center">{profile.full_name}</h1>
-
           <div className="flex flex-col items-center mb-8">
             <div className="relative group w-32 h-32">
               <div className="w-full h-full rounded-full bg-gray-300 border-4 border-white flex items-center justify-center shadow-lg overflow-hidden">
