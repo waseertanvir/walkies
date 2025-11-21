@@ -574,7 +574,7 @@ export default function Profile() {
         <div className="absolute top-4 left-4 z-50">
           <button
             onClick={() => navigate('/userprofile')}
-            className="bg-wolive text-black p-2 rounded-full shadow-lg hover:bg-green-600 transition-colors"
+            className="fixed top-4 left-4 z-50 bg-wsage/75 backdrop-blur-sm text-black p-2 rounded-full shadow-lg"
           >
             <ChevronLeft size={30} />
           </button>

@@ -181,7 +181,7 @@ export default function OwnerDogs() {
       <div className="min-h-screen bg-wblue p-4 relative overflow-hidden">
         <button
           onClick={() => navigate(-1)}
-          className="fixed top-4 left-4 z-50 bg-wolive text-black p-2 rounded-full shadow-lg hover:bg-green-600 transition"
+          className="fixed top-4 left-4 z-50 bg-wsage/75 backdrop-blur-sm text-black p-2 rounded-full shadow-lg"
         >
           <ChevronLeft size={30} />
         </button>

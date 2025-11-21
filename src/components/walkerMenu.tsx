@@ -44,7 +44,7 @@ export default function WalkerMenu() {
                 className="py-3"
                 onClick={() => navigate("/walker/completed-walks")}
               >
-                Completed Walks
+                Walk History
               </button>
             </li>
             <li>

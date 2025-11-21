@@ -216,7 +216,7 @@ export default function BrowseRequests() {
         <div className="max-w-4xl mx-auto">
           <button
             onClick={() => navigate(-1)}
-            className="fixed top-4 left-4 z-50 bg-wolive text-black p-2 rounded-full shadow-lg hover:bg-green-600 transition"
+            className="fixed top-4 left-4 z-50 bg-wsage/75 backdrop-blur-sm text-black p-2 rounded-full shadow-lg"
             >
             <ChevronLeft size={30} />
           </button>
