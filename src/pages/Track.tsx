@@ -11,7 +11,6 @@ import { useNavigate, useParams } from "react-router";
 import OwnerMenu from "../components/ownerMenu";
 import WalkerMenu from "../components/walkerMenu";
 import { TrajectoryLine } from "../components/TrajectoryLine";
-import logo from "../assets/Logo.png";
 import Loader from "../Loader";
 import { WalkStatus } from "../constants/WalkStatus";
 import { Rating } from "@smastrom/react-rating";
@@ -141,6 +140,8 @@ export default function Track() {
     () => myPosition ?? { lat: 49.24, lng: -123.05 },
     [myPosition]
   );
+
+  const [eta, setETA] = useState<number>(0);
 
   const [isLoaded, setIsLoaded] = useState(false);
   const intervalRef = useRef<number | null>(null);
@@ -308,6 +309,8 @@ export default function Track() {
         sessionStatus === WalkStatus.InProgress
       ) {
         setMyPosition(p.position);
+        if (ownerPos && walkerPos)
+          setETA(Math.round(haversine(ownerPos, walkerPos)));
         setPath((prev) => {
           const last = prev[prev.length - 1];
           if (!last || haversine(last, p.position) >= 1) {
@@ -738,52 +741,24 @@ export default function Track() {
         </Map>
       </APIProvider>
 
-      {/* Avatars always viewable, but shift up when chat is visible */}
-      <div
-        className={`absolute z-50 left-1/2 -translate-x-1/2 ${sessionStatus === WalkStatus.InProgress
-          ? "top-[47%]"
-          : sessionStatus === WalkStatus.Rate
-            ? "top-[30%]"
-            : "top-[58%]"
-          }`}
-      >
-        <div
-          className="
-          w-[125px] h-[125px] rounded-full 
-          border-4 border-yellow-400 
-          bg-gray-700 flex items-center justify-center"
-        >
-          {avatarUrl ? (
-            <img
-              src={avatarUrl}
-              alt={me?.name ?? "Profile"}
-              className="w-full h-full rounded-full object-cover"
-            />
-          ) : (
-            <span className="text-white text-sm">No Image</span>
-          )}
-        </div>
-        <p className="text-center text-yellow-500 font-bold text-1xl p-3">
-          {other?.name}
-        </p>
-      </div>
-
       {/*Green Div Part*/}
       <div
         className={`absolute bottom-0 w-full ${sessionStatus === WalkStatus.InProgress
           ? "h-[46%]"
           : sessionStatus === WalkStatus.Rate
-            ? "top-[37%]"
-            : "h-[35%]"
+            ? ""
+            : "h-[30%]"
           } rounded-t-xl bg-wsage/85 backdrop-blur-sm p-5`}
       >
-        <div className="flex flex-col items-center justify-center h-full w-full space-y-4">
-
+        <p className="text-center text-yellow-500 font-bold text-2xl pt-4 capitalize">
+          {other?.role} : {other?.name}
+        </p>
+        <div className="flex flex-col items-center justify-center w-full">
           {/* STATUS: PENDING */}
           {me?.role === "owner" && sessionStatus === WalkStatus.Pending && (
-            <div className="w-full flex-col justify-center pt-16">
+            <div className="w-full flex-col justify-center py-4">
               <Loader />
-              <p className="text-center text-white text-xl pt-8">Finding walker</p>
+              <p className="text-center text-white text-xl pt-4">Finding walker</p>
             </div>
           )}
           {me?.role === "walker" && sessionStatus === WalkStatus.Pending && (
@@ -793,43 +768,37 @@ export default function Track() {
           )}
 
           {/* STATUS: ACCEPTED ETA LOGIC */}
-          {me?.role === "owner" &&
-            sessionStatus === WalkStatus.Accepted &&
-            ownerPos &&
-            walkerPos && (
-              <div className="text-white font-medium py-2 px-4 rounded-md text-center">
-                ETA:{" "}
-                {ownerPos && walkerPos
-                  ? haversine(ownerPos, walkerPos)
-                  : 0 / 100}{" "}
-                Mins
-                <div className="text-white font-medium py-2 px-4 rounded-md text-center">
-                  Waiting for walker
+          {sessionStatus === WalkStatus.Accepted && ownerPos && walkerPos && (
+            <div className="text-white text-xl py-4 pt-8 text-center">
+              {/* OWNER VIEW */}
+              {me?.role === "owner" && (
+                <>
+                  <div>
+                    ETA: {eta} Mins
+                  </div>
+                  <div className="mt-2">Waiting for walker</div>
+                </>
+              )}
+
+              {/* WALKER VIEW — invisible placeholder for layout */}
+              {me?.role === "walker" && (
+                <div className="invisible">
+                  ETA: {eta} Mins
                 </div>
-              </div>
-            )}
-          {me?.role === "walker" &&
-            sessionStatus === WalkStatus.Accepted &&
-            ownerPos &&
-            walkerPos && (
-              <div className="invisible text-white font-medium py-2 px-4 rounded-md text-center">
-                ETA:{" "}
-                {ownerPos && walkerPos
-                  ? haversine(ownerPos, walkerPos)
-                  : 0 / 100}{" "}
-                Mins
-              </div>
-            )}
+              )}
+            </div>
+          )}
+
 
           {/* WALKER VIEW */}
           {me?.role === "walker" && (
             <>
               {/* WALKER ACCEPTED*/}
               {sessionStatus === WalkStatus.Accepted && (
-                <div className="absolute bottom-0 w-full p-5 rounded-t-xl">
+                <div className="w-full p-5 rounded-t-xl">
                   <div className="flex flex-col items-center gap-4">
                     {!canStart && (
-                      <div className="text-white font-medium py-2 px-4 rounded-md text-center">
+                      <div className="text-white text-xl py-2 px-4 rounded-md text-center">
                         Walk to owner {canStart}
                       </div>
                     )}
@@ -844,7 +813,7 @@ export default function Track() {
               )}
               {/* WALKER IN PROGRESS*/}
               {sessionStatus === WalkStatus.InProgress && (
-                <div className="absolute bottom-0 w-full p-5 rounded-t-xl">
+                <div className="w-full p-5 rounded-t-xl">
                   <div className="flex flex-col gap-4">
                     {/* Chat box */}
                     <div
@@ -908,7 +877,7 @@ export default function Track() {
 
           {/* OWNER VIEW: IN PROGRESS (chat styled same as walker) */}
           {me?.role === "owner" && sessionStatus === WalkStatus.InProgress && (
-            <div className="absolute bottom-0 w-full p-5 rounded-t-xl">
+            <div className="w-full p-5 rounded-t-xl">
               <div className="flex flex-col gap-4">
                 {/* Messages */}
                 <div
@@ -978,14 +947,14 @@ export default function Track() {
           {/* OWNER VIEW: RATE */}
           {me?.role === "owner" && sessionStatus === WalkStatus.Rate && (
             <>
-              <div className="relative w-full -top-5 text-left">
-                <p className="text-1xl text-white">Dog: {dog?.name}</p>
-                <p className="text-1xl text-white">Breed: {dog?.breed}</p>
-                <p className="text-1xl text-white">
+              <div className="w-full -top-5 text-left px-4">
+                <p className="text-xl text-white">Dog: {dog?.name}</p>
+                <p className="text-xl text-white">Breed: {dog?.breed}</p>
+                <p className="text-xl text-white">
                   Duration: {displayStart} - {displayEnd}
                 </p>
                 {session?.activity && (
-                  <p className="text-1xl text-white">
+                  <p className="text-xl text-white">
                     Activities: {session.activity}
                   </p>
                 )}
@@ -1006,7 +975,7 @@ export default function Track() {
                   />
                 </div>
 
-                <div className="relative w-full h-auto border border-white-300">
+                <div className="w-full h-auto border border-white-300">
                   <input
                     className="bg-white text-black w-75 h-50 text-center"
                     type="text"
@@ -1041,19 +1010,19 @@ export default function Track() {
           )}
           {/* WALKER VIEW: SUMMARY */}
           {me?.role === "walker" && sessionStatus === WalkStatus.Rate && (
-            <div className="absolute bottom-0 w-full p-5 rounded-t-xl">
+            <div className="w-full p-5 rounded-t-xl">
               <h2 className="text-2xl text-white font-bold text-center mb-4 h-20">
                 WALK COMPLETED
               </h2>
 
               <div className="text-center text-white mb-4 h-50">
-                <p className="text-1xl">Dog: {dog?.name}</p>
-                <p className="text-1xl">Breed: {dog?.breed}</p>
-                <p className="text-1xl">
+                <p className="text-xl">Dog: {dog?.name}</p>
+                <p className="text-xl">Breed: {dog?.breed}</p>
+                <p className="text-xl">
                   Duration: {displayStart} - {displayEnd}
                 </p>
                 {session?.activity && (
-                  <p className="text-1xl">Activities: {session.activity}</p>
+                  <p className="text-xl">Activities: {session.activity}</p>
                 )}
               </div>
               <Button
