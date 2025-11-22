@@ -44,12 +44,19 @@ export default function MainProfile() {
         }
       }
 
-      const profileResponseBody = await findProfileById(
+      let profileResponseBody = await findProfileById(
         user.id.toString(),
         userToken
       );
 
-      if (!profileResponseBody) console.error("Something went wrong when fetching profile information.");
+      if (!profileResponseBody) {
+        profileResponseBody = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      }
+      
       else {
         setProfile(profileResponseBody);
         setFormData({
