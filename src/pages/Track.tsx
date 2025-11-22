@@ -414,19 +414,12 @@ export default function Track() {
     const now = new Date(Date.now());
     const formattedDate = now.toISOString().slice(0, 16);
 
-    const start = new Date(session.start_time);
-    const durationMs = now.getTime() - start.getTime();
-    console.log(' durationMs:', durationMs)
-    const durationHours = durationMs / 1000 / 60/ 60;
-    console.log(' durationHours:', durationHours)
-    const finalBill = durationHours * session.compensation;
-    console.log(' finalBill:', finalBill)
     const { data } = await supabase
       .from("sessions")
       .update({
         status: WalkStatus.Rate,
         end_time: formattedDate,
-        compensation: finalBill,
+        compensation: session.duration_minutes/60*session.compensation,
       })
       .select("start_time, end_time")
       .eq("id", session.id);
