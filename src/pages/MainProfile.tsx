@@ -49,15 +49,25 @@ export default function MainProfile() {
         userToken
       );
 
+      // If external service failed, get from Supabase
       if (!profileResponseBody) {
-        profileResponseBody = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
+        const { data: supabaseProfile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        if (profileError) {
+          console.error('Error fetching profile from Supabase:', profileError);
+          setLoading(false);
+          return; // Exit early if Supabase also fails
+        }
+
+        profileResponseBody = supabaseProfile; // Use the data, not the whole response object
       }
-      
-      else {
+
+      // Set profile data (works for both external service and Supabase)
+      if (profileResponseBody) {
         setProfile(profileResponseBody);
         setFormData({
           full_name: profileResponseBody.full_name || '',
@@ -69,7 +79,7 @@ export default function MainProfile() {
         });
         setAvatarUrl(profileResponseBody.avatar_url || null);
         setCanChangeRole(!profileResponseBody.role || profileResponseBody.role === '');
-      } 
+      }
 
       setLoading(false);
     };
