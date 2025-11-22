@@ -746,7 +746,7 @@ export default function Track() {
         className={`absolute bottom-0 w-full ${sessionStatus === WalkStatus.InProgress
           ? "h-[46%]"
           : sessionStatus === WalkStatus.Rate
-            ? "top-[37%]"
+            ? ""
             : "h-[30%]"
           } rounded-t-xl bg-wsage/85 backdrop-blur-sm p-5`}
       >
@@ -975,7 +975,7 @@ export default function Track() {
                   />
                 </div>
 
-                <div className="relative w-full h-auto border border-white-300">
+                <div className="w-full h-auto border border-white-300">
                   <input
                     className="bg-white text-black w-75 h-50 text-center"
                     type="text"
