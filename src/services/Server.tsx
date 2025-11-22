@@ -1,10 +1,4 @@
 export async function findProfileById(uuid: string, token: string) {
-  const useExternalService = import.meta.env.VITE_USE_EXTERNAL_PROFILE_SERVICE === 'true';
-  if (!useExternalService) {
-      console.log("External profile service disabled, skipping...");
-      return null;
-  }
-  
     if(!token) {
       console.log("REST call failure. Token is null!");
     }
