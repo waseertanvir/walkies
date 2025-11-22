@@ -37,6 +37,8 @@ export default function App() {
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
   const [experienceYears, setExperienceYears] = useState<number | null>(null);
 
+  const intervalRef = useRef<number | null>(null);
+
   type UserLocation = {
     userID: string;
     role: string;
@@ -214,26 +216,52 @@ export default function App() {
     }
   };
 
-  // useEffect(() => {
-  //   const getClicked = async () => {
-  //     const { data, error } = await supabase
-  //       .from("walk_review")
-  //       .select("rating")
-  //       .eq("user_id", clickedUser?.userID);
-  //     if (error) {
-  //       console.error(error);
-  //       return;
-  //     }
-  //     if (data && data.length > 0) {
-  //       const avg = data.reduce((sum, row) => sum + row.rating, 0) / data.length;
-  //       console.log("Average rating:", avg);
-  //       setClickedRating({ rating: avg, count: data.length })
-  //     } else {
-  //       console.log("No ratings found");
-  //     }
-  //   };
-  //   getClicked();
-  // }, [clickedUser]);
+  const checkActives = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (intervalRef.current !== null) return;
+    intervalRef.current = window.setInterval(async () => {
+      const { data: walks, error: walksError } = await supabase
+        .from("sessions")
+        .select("id, pet_id")
+        .eq("owner_id", user?.id)
+        .eq("status", WalkStatus.InProgress);
+
+      if (walksError) {
+        console.error("Error fetching walks:", walksError);
+        return;
+      }
+      console.log("WALKS", user, walks);
+
+      if (!walks || walks.length === 0) {
+        setActiveWalks(null);
+      } else {
+        // get dog names
+        const results: ActiveWalk[] = await Promise.all(
+          walks.map(async (walk) => {
+            const { data: pet, error: petError } = await supabase
+              .from("pets")
+              .select("name")
+              .eq("id", walk.pet_id)
+              .single();
+
+            if (petError) {
+              console.error("Error fetching pet:", petError);
+              return { session: walk.id, dog: "Unknown" };
+            }
+
+            return { session: walk.id, dog: pet?.name || "Unknown" };
+          })
+        );
+        setActiveWalks(results);
+      }
+    }, 2000);
+    return;
+  };
+  checkActives();
+
   useEffect(() => {
     if (!clickedUser) return;
 

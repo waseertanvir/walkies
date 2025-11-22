@@ -119,7 +119,6 @@ export default function MainProfile() {
       if (error) {
         alert("Error saving profile: " + error.message);
       } else {
-        alert("Profile saved successfully!");
         setCanChangeRole(false);
         setProfile({ ...profile, ...updates });
       }
@@ -169,7 +168,6 @@ export default function MainProfile() {
       if (dbError) throw dbError;
 
       setAvatarUrl(publicUrl);
-      alert('Image uploaded successfully!');
     } catch (error: any) {
       console.error(error);
       alert('Error uploading image: ' + error.message);

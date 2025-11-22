@@ -177,7 +177,7 @@ export default function BrowseRequests() {
       console.log('Verification applications includes user?', verifyData?.applications?.includes(user.id));
 
       if (verifyData?.applications?.includes(user.id)) {
-        alert('Application submitted! The owner will review your application.');
+        navigate('/walker/dashboard')
       } else {
         alert('Application may not have been saved. Please try again.');
         return;
