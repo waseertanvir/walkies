@@ -60,6 +60,8 @@ export default function WalkerDashboard() {
         .from('sessions')
         .select('*, pets ( name )')
         .eq('walker_id', user.id)
+        // .neq('status', WalkStatus.Completed)
+        // .neq('status', WalkStatus.Rate)
         .order('start_time', { ascending: false });
 
       if (error) {
@@ -154,7 +156,7 @@ export default function WalkerDashboard() {
                   Compensation: ${walk.compensation}
                 </p>
 
-                <StatusPill status={walk.status} />
+                <StatusPill status={walk.status} className='mb-2'/>
                 {walk.status == 'pending' ? (
                   <Button children={'Accept'} onClick={() => {void handleAccept(walk.id);}}></Button>
                 ) : (<Button children={'Track'} onClick={() => navigate(`/track/${walk.id}`)}></Button>)}

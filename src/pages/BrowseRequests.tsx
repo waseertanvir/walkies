@@ -64,7 +64,6 @@ export default function BrowseRequests() {
       console.log('BrowseRequests - First session applications is array:', Array.isArray(data?.[0]?.applications));
       setRequests(data || []);
 
-      // Fetch pets and owners data
       if (data && data.length > 0) {
         const petIds = data.map(request => request.pet_id);
         const ownerIds = data.map(request => request.owner_id);
@@ -108,7 +107,6 @@ export default function BrowseRequests() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Get current session to check applications
       const { data: session } = await supabase
         .from('sessions')
         .select('applications, type')
@@ -128,14 +126,12 @@ export default function BrowseRequests() {
       console.log('Session applications type:', typeof session.applications);
       console.log('Session applications is array:', Array.isArray(session.applications));
 
-      // Check if user already applied
       if (session.applications && session.applications.includes(user.id)) {
         alert('You have already applied to this session');
         setApplyingTo(null);
         return;
       }
 
-      // Add user to applications array
       const currentApplications = session.applications || [];
       const updatedApplications = [...currentApplications, user.id];
 
@@ -150,6 +146,10 @@ export default function BrowseRequests() {
             applications: updatedApplications
           })
           .eq('id', requestId);
+
+        if (error) {
+          console.error('Error updating scheduled session:', error);
+        }
       } else {
         const { error } = await supabase
           .from('sessions')
@@ -159,9 +159,12 @@ export default function BrowseRequests() {
             walker_id: user.id
           })
           .eq('id', requestId);
+
+        if (error) {
+          console.error('Error updating on-demand session:', error);
+        }
       }
 
-      // Verify the update by reading back from database
       const { data: verifyData, error: verifyError } = await supabase
         .from('sessions')
         .select('applications')
@@ -173,17 +176,13 @@ export default function BrowseRequests() {
       console.log('Verification applications:', verifyData?.applications);
       console.log('Verification applications includes user?', verifyData?.applications?.includes(user.id));
 
-      // Check if verification shows the update worked
       if (verifyData?.applications?.includes(user.id)) {
-        console.log('✅ Application successfully added to database');
         alert('Application submitted! The owner will review your application.');
       } else {
-        console.log('❌ Application not found in verification read');
         alert('Application may not have been saved. Please try again.');
         return;
       }
 
-      // Wait a moment for database to fully commit, then refresh
       setTimeout(() => {
         console.log('Refreshing data after delay...');
         fetchRequests();
@@ -212,136 +211,122 @@ export default function BrowseRequests() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-wblue p-4">
-        <div className="max-w-4xl mx-auto">
-          <button
-            onClick={() => navigate(-1)}
-            className="fixed top-4 left-4 z-50 bg-wsage/75 backdrop-blur-sm text-black p-2 rounded-full shadow-lg"
-            >
-            <ChevronLeft size={30} />
-          </button>
-          <div className="flex items-center mb-6">
-            {/* <Button variant="secondary" onClick={() => navigate('/')} className="mr-4">
-              ← Back
-            </Button> */}
-            <h1 className="text-2xl font-bold text-white">Available Walk Requests</h1>
-          </div>
+      <div className="min-h-screen bg-wblue p-4 relative overflow-hidden">
+        <button
+          onClick={() => navigate(-1)}
+          className="fixed top-4 left-4 z-50 bg-wsage/75 backdrop-blur-sm text-black p-2 rounded-full shadow-lg"
+        >
+          <ChevronLeft size={30} />
+        </button>
+
+        <div className="max-w-3xl mx-auto mt-8">
+          <h1 className="text-3xl font-bold text-white mb-8 text-center">
+            Browse Requests
+          </h1>
 
           {requests.length === 0 ? (
-            <Card>
-              <div className="text-center py-8">
-                <p className="text-gray-600 text-lg">No walk requests available at the moment.</p>
-                <p className="text-gray-500 text-sm mt-2">Check back later for new opportunities!</p>
-              </div>
-            </Card>
+            <p className="text-white text-center mt-8">
+              No walk requests available at the moment. Check back later for new opportunities!
+            </p>
           ) : (
-            <div className="space-y-4">
-              {requests.map((request) => (
-                <Card key={request.id} className="hover:shadow-lg transition-shadow">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-lg font-semibold text-wblue">
-                          {pets[request.pet_id]?.name} ({pets[request.pet_id]?.breed})
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {requests.map((request) => {
+                const pet = pets[request.pet_id];
+                const owner = owners[request.owner_id];
+
+                return (
+                  <Card
+                    key={request.id}
+                    className="bg-[#D9D9D9] p-4 hover:shadow-lg transition"
+                  >
+                    <div className="flex flex-col h-full">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-xl font-semibold text-wblue text-center w-full">
+                          {pet ? `${pet.name} (${pet.breed})` : 'Unknown Pet'}
                         </h3>
+                      </div>
+
+                      <div className="flex items-center justify-center mb-2">
                         <StatusPill status={request.status} />
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div>
-                          <p className="text-sm text-gray-600">
-                            <span className="font-medium">Owner:</span> {owners[request.owner_id]?.full_name}
+                      <div className="text-sm text-gray-700 flex-1">
+                        <p className="pt-1">
+                          <strong>Owner:</strong> {owner?.full_name || 'Unknown Owner'}
+                        </p>
+                        <p className="pt-1">
+                          <strong>Start Time:</strong> {formatDateTime(request.start_time)}
+                        </p>
+                        <p className="pt-1">
+                          <strong>Duration:</strong> {request.duration_minutes} minutes
+                        </p>
+                        <p className="pt-1">
+                          <strong>Compensation:</strong> ${request.compensation}
+                        </p>
+                        {request.meeting_location && (
+                          <p className="pt-1">
+                            <strong>Meeting Location:</strong> {request.meeting_location}
                           </p>
-                          <p className="text-sm text-gray-600">
-                            <span className="font-medium">Start Time:</span> {formatDateTime(request.start_time)}
+                        )}
+                        {request.notes && (
+                          <p className="pt-1">
+                            <strong>Notes:</strong> {request.notes}
                           </p>
-                          <p className="text-sm text-gray-600">
-                            <span className="font-medium">Duration:</span> {request.duration_minutes} minutes
+                        )}
+                        {request.special_instructions && (
+                          <p className="pt-1">
+                            <strong>Special Instructions:</strong> {request.special_instructions}
                           </p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-600">
-                            <span className="font-medium">Compensation:</span> ${request.compensation}
+                        )}
+                        {pet?.description && (
+                          <p className="pt-1">
+                            <strong>Pet Description:</strong> {pet.description}
                           </p>
-                          {request.meeting_location && (
-                            <p className="text-sm text-gray-600">
-                              <span className="font-medium">Meeting Location:</span> {request.meeting_location}
-                            </p>
-                          )}
-                        </div>
+                        )}
                       </div>
 
-                      {request.notes && (
-                        <div className="mb-3">
-                          <p className="text-sm text-gray-600">
-                            <span className="font-medium">Notes:</span> {request.notes}
-                          </p>
-                        </div>
-                      )}
-
-                      {request.special_instructions && (
-                        <div className="mb-3">
-                          <p className="text-sm text-gray-600">
-                            <span className="font-medium">Special Instructions:</span> {request.special_instructions}
-                          </p>
-                        </div>
-                      )}
-
-                      <div className="mb-3">
-                        <p className="text-sm text-gray-600">
-                          <span className="font-medium">Pet Description:</span> {pets[request.pet_id]?.description}
-                        </p>
-                      </div>
-
-                      {/* Applications Count */}
-                      <div className="mb-3">
-                        <p className="text-sm text-wblue font-medium">
-                          <span className="font-medium">Applications:</span> {request.applications?.length || 0} walker(s) applied
-                        </p>
+                      <div className="mt-4 flex justify-center">
+                        {(() => {
+                          console.log(`Button logic for session ${request.id}:`, {
+                            walker_id: request.walker_id,
+                            currentUserId: currentUserId,
+                            applications: request.applications,
+                            isWalkerSelected: request.walker_id === currentUserId,
+                            isApplied: request.applications?.includes(currentUserId || ''),
+                            applyingTo: applyingTo
+                          });
+                          return null;
+                        })()}
+                        {request.walker_id === currentUserId ? (
+                          <Button
+                            disabled
+                            size="sm"
+                            variant="secondary"
+                          >
+                            Selected ✓
+                          </Button>
+                        ) : request.applications?.includes(currentUserId || '') ? (
+                          <Button
+                            disabled
+                            size="sm"
+                            variant="secondary"
+                          >
+                            Applied ✓
+                          </Button>
+                        ) : (
+                          <Button
+                            onClick={() => handleApply(request.id)}
+                            disabled={applyingTo === request.id}
+                            size="sm"
+                          >
+                            {applyingTo === request.id ? 'Applying...' : 'Apply'}
+                          </Button>
+                        )}
                       </div>
                     </div>
-
-                    <div className="ml-4">
-                      {(() => {
-                        console.log(`Button logic for session ${request.id}:`, {
-                          walker_id: request.walker_id,
-                          currentUserId: currentUserId,
-                          applications: request.applications,
-                          isWalkerSelected: request.walker_id === currentUserId,
-                          isApplied: request.applications?.includes(currentUserId || ''),
-                          applyingTo: applyingTo
-                        });
-                        return null;
-                      })()}
-                      {request.walker_id === currentUserId ? (
-                        <Button
-                          disabled
-                          size="sm"
-                          variant="secondary"
-                        >
-                          Selected ✓
-                        </Button>
-                      ) : request.applications?.includes(currentUserId || '') ? (
-                        <Button
-                          disabled
-                          size="sm"
-                          variant="secondary"
-                        >
-                          Applied ✓
-                        </Button>
-                      ) : (
-                        <Button
-                          onClick={() => handleApply(request.id)}
-                          disabled={applyingTo === request.id}
-                          size="sm"
-                        >
-                          {applyingTo === request.id ? 'Applying...' : 'Apply'}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                );
+              })}
             </div>
           )}
         </div>
