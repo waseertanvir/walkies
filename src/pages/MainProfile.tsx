@@ -4,6 +4,7 @@ import { supabase } from '../supabaseClient';
 import ProtectedRoute from '../auth/ProtectedRoute';
 import { Card, Button } from '../components/ui';
 import { ChevronLeft } from 'lucide-react';
+import { findProfileById } from '../services/Server'
 
 export default function MainProfile() {
   const navigate = useNavigate();
@@ -30,26 +31,38 @@ export default function MainProfile() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
+      const storageValue = localStorage.getItem('sb-xcmovnduktcrxmzdftyz-auth-token');
 
-      if (error) console.error(error);
-      else {
-        setProfile(data);
-        setFormData({
-          full_name: data.full_name || '',
-          phone: data.phone || '',
-          email: data.email || user.email || '',
-          role: data.role || '',
-          bio: data.bio || '',
-          years_experience: data.years_experience || 0,
-        });
-        setAvatarUrl(data.avatar_url || null);
-        setCanChangeRole(!data.role || data.role === '');
+      let userToken = null;
+
+      if (storageValue) {
+        try {
+          const parsed = JSON.parse(storageValue);
+          userToken = parsed?.access_token ?? null;
+        } catch (err) {
+          console.error("Failed to parse stored auth token:", err);
+        }
       }
+
+      const profileResponseBody = await findProfileById(
+        user.id.toString(),
+        userToken
+      );
+
+      if (!profileResponseBody) console.error("Something went wrong when fetching profile information.");
+      else {
+        setProfile(profileResponseBody);
+        setFormData({
+          full_name: profileResponseBody.full_name || '',
+          phone: profileResponseBody.phone || '',
+          email: profileResponseBody.email || user.email || '',
+          role: profileResponseBody.role || '',
+          bio: profileResponseBody.bio || '',
+          years_experience: profileResponseBody.years_experience || 0,
+        });
+        setAvatarUrl(profileResponseBody.avatar_url || null);
+        setCanChangeRole(!profileResponseBody.role || profileResponseBody.role === '');
+      } 
 
       setLoading(false);
     };
