@@ -183,7 +183,7 @@ export default function MySessions() {
                 <p className="text-gray-600 mb-4">
                   You haven't created any walk sessions yet.
                 </p>
-                <Button onClick={() => navigate("/requests/new")}>
+                <Button onClick={() => navigate("/owner/schedule/")}>
                   Create Your First Session
                 </Button>
               </div>

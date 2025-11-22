@@ -391,45 +391,51 @@ export default function App() {
         </Map>
 
         {clickedUser && (
-          <div className={`status-container ${isExpanded ? "expanded" : ""}`}>
-            <img
-              src={profilePicture || profileBanner}
-              alt={clickedUser.name}
-              className="status-image"
-            />
+          <>
             <div
-              className="status-box"
-              onTouchStart={handleTouchStart}
-              onTouchEnd={handleTouchEnd}
-              onClick={() =>
-                clickedUser &&
-                navigate(`/owner/walker/${clickedUser.userID}`, {
-                  state: { user: clickedUser },
-                })
-              }
-            >
-              <div className="header flex justify-between items-center">
-                <span className="name">{clickedUser.name}</span>
-                <Button
-                  className="rounded-3xl px-4 py-2 text-sm sm:text-base"
-                  onClick={() => setClickedUser(null)}
-                >
-                  Details
-                </Button>
-              </div>
-              <div className="details">
-                <span>
-                  <span>★ </span>
-                  {clickedRating?.rating.toFixed(2)} ({clickedRating?.count})
-                </span>
-                <span className="years-experience">
-                  {experienceYears
-                    ? `${experienceYears} years of walking experience`
-                    : "Experience information not provided."}
-                </span>
+              className="fixed inset-0 w-screen h-screen bg-black/30 z-[900]"
+              onClick={() => setClickedUser(null)}
+            />
+            <div className={`status-container ${isExpanded ? "expanded" : ""}`}>
+              <img
+                src={profilePicture || profileBanner}
+                alt={clickedUser.name}
+                className="status-image"
+              />
+              <div
+                className="status-box"
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}
+                onClick={() =>
+                  clickedUser &&
+                  navigate(`/owner/walker/${clickedUser.userID}`, {
+                    state: { user: clickedUser },
+                  })
+                }
+              >
+                <div className="header flex justify-between items-center">
+                  <span className="name">{clickedUser.name}</span>
+                  <Button
+                    className="rounded-3xl px-4 py-2 text-sm sm:text-base"
+                    onClick={() => setClickedUser(null)}
+                  >
+                    Details
+                  </Button>
+                </div>
+                <div className="details">
+                  <span>
+                    <span>★ </span>
+                    {clickedRating?.rating.toFixed(2)} ({clickedRating?.count})
+                  </span>
+                  <span className="years-experience">
+                    {experienceYears
+                      ? `${experienceYears} years of walking experience`
+                      : "Experience information not provided."}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
+          </>
         )}
 
         {activeWalks && activeWalks.length > 0 && (

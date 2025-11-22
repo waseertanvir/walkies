@@ -416,10 +416,11 @@ export default function Track() {
 
     const start = new Date(session.start_time);
     const durationMs = now.getTime() - start.getTime();
-    const durationMinutes = durationMs / 1000 / 60;
-
-    const finalBill = durationMinutes * session.compensation;
-
+    console.log(' durationMs:', durationMs)
+    const durationHours = durationMs / 1000 / 60/ 60;
+    console.log(' durationHours:', durationHours)
+    const finalBill = durationHours * session.compensation;
+    console.log(' finalBill:', finalBill)
     const { data } = await supabase
       .from("sessions")
       .update({
@@ -470,6 +471,11 @@ export default function Track() {
       }
     }
 
+    await supabase
+      .from('messages')
+      .delete()
+      .eq('session_id', session.id);
+
     setSession({ ...session, status: WalkStatus.Rate });
     setSessionStatus(WalkStatus.Rate);
   };
@@ -503,8 +509,38 @@ export default function Track() {
       console.log("Waiting for walker to accept:", data);
 
       if (data?.status == WalkStatus.Accepted) {
+        if (me?.role == "owner") {
+        const { data: otherProfile } = await supabase
+          .from("profiles")
+          .select("full_name, role, avatar_url")
+          .eq("id", session?.walker_id)
+          .single();
+        setOther({
+          id: session?.walker_id ?? "",
+          name: otherProfile?.full_name ?? "",
+          role: otherProfile?.role ?? "",
+        });
+        // avatar is always other persons
+        setAvatarUrl(otherProfile?.avatar_url ?? null);
+        console.log(otherProfile);
+      } else if (me?.role == "walker") {
+        const { data: otherProfile } = await supabase
+          .from("profiles")
+          .select("full_name, role, avatar_url")
+          .eq("id", session?.owner_id)
+          .single();
+        setOther({
+          id: session?.owner_id ?? "",
+          name: otherProfile?.full_name ?? "",
+          role: otherProfile?.role ?? "",
+        });
+        // avatar is always other persons
+        setAvatarUrl(otherProfile?.avatar_url ?? null);
+        console.log(otherProfile);
+      }
         stopInterval();
         setSessionStatus(WalkStatus.Accepted);
+        
         startCheckingForWalkStart();
       }
     }, 2000);
@@ -557,6 +593,18 @@ export default function Track() {
       .eq("id", sessionId)
       .single();
     console.log("in rate status and checking for data", data);
+
+    const now = new Date(Date.now());
+    const formattedDate = now.toISOString().slice(0, 16);
+
+    const start = new Date(session!.start_time);
+    const durationMs = now.getTime() - start.getTime();
+    console.log(' durationMs:', durationMs)
+    const durationHours = durationMs / 1000 / 60/60;
+    console.log(' durationHours:', durationHours)
+    const finalBill = durationHours * session!.compensation;
+    console.log(' finalBill:', finalBill)
+    
     if (data != null && data.status == WalkStatus.Rate) {
       console.log("in rate status and checking for data", data);
       setDisplayStart(displayTime(new Date(data.start_time)));
@@ -684,7 +732,7 @@ export default function Track() {
           mapId={import.meta.env.VITE_GOOGLE_MAP_ID}
           style={{ width: "100vw", height: "78%" }}
           center={center}
-          defaultZoom={16}
+          defaultZoom={17}
           disableDefaultUI
           clickableIcons={false}
         >
@@ -746,13 +794,20 @@ export default function Track() {
         className={`absolute bottom-0 w-full ${sessionStatus === WalkStatus.InProgress
           ? "h-[46%]"
           : sessionStatus === WalkStatus.Rate
-            ? ""
+            ? "h-[70%]"
             : "h-[30%]"
           } rounded-t-xl bg-wsage/85 backdrop-blur-sm p-5`}
       >
-        <p className="text-center text-yellow-500 font-bold text-2xl pt-4 capitalize">
+        {sessionStatus !== WalkStatus.Pending &&(
+          <p className="text-center text-yellow-500 font-bold text-2xl pt-4 capitalize">
           {other?.role} : {other?.name}
         </p>
+        )}
+        {sessionStatus === WalkStatus.Pending &&(
+          <p className="invisible text-center text-yellow-500 font-bold text-2xl pt-4 capitalize">
+          {other?.role} : {other?.name}
+        </p>
+        )}
         <div className="flex flex-col items-center justify-center w-full">
           {/* STATUS: PENDING */}
           {me?.role === "owner" && sessionStatus === WalkStatus.Pending && (
