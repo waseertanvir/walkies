@@ -154,16 +154,12 @@ export default function MySessions() {
       <div className="min-h-screen bg-wblue p-4">
         <div className="max-w-4xl mx-auto">
           <div className="relative mb-6">
-            {/* <Button variant="secondary" onClick={() => navigate('/')} className="mr-4">
-              ← Back to Dashboard
-            </Button> */}
             <button
               onClick={() => navigate("/owner/dashboard")}
               className="fixed top-4 left-4 z-50 bg-wsage/75 backdrop-blur-sm text-black p-2 rounded-full shadow-lg"
             >
               <ChevronLeft size={30} />
             </button>
-            {/* <h1 className="text-2xl font-bold text-white ">My Sessions</h1> */}
             <div className="flex justify-center">
               <h1 className="text-2xl font-bold text-white text-center mt-2">
                 Scheduled Walks

@@ -977,22 +977,6 @@ export default function Track() {
             </div>
           )}
 
-          {/* TIME + IN PROGRESS LABEL
-          {me?.role === "walker" &&
-            sessionStatus === WalkStatus.InProgress &&
-            start && (
-              <div className="invisible text-white font-medium py-2 px-4 rounded-md text-center">
-                TIME REMAINING:{" "}
-                {calculateTime((Date.now() - start.getTime()) / 60000)}
-              </div>
-            )}
-          {sessionStatus === WalkStatus.InProgress && (
-            <div className="text-white font-medium py-2 px-4 rounded-md text-center">
-              IN PROGRESS
-            </div>
-          )} */}
-
-          {/* OWNER VIEW: RATE */}
           {me?.role === "owner" && sessionStatus === WalkStatus.Rate && (
             <>
               <div className="w-full -top-5 text-left px-4">
